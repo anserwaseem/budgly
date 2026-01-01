@@ -82,7 +82,7 @@ Bujit is a PWA, meaning you can:
 
 ```bash
 # Clone the repository
-git clone <YOUR_GIT_URL>
+git clone https://github.com/anserwaseem/bujit
 
 # Navigate to project
 cd bujit
