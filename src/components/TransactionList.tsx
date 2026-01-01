@@ -135,21 +135,22 @@ export function TransactionList({
 
   // Infinite scroll with Intersection Observer
   useEffect(() => {
+    const loadMoreElement = loadMoreRef.current;
+    if (!loadMoreElement) return;
+
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting) {
           setVisibleCount(prev => prev + ITEMS_PER_PAGE);
         }
       },
-      { threshold: 0.1 }
+      { threshold: 0.1, rootMargin: '100px' }
     );
 
-    if (loadMoreRef.current) {
-      observer.observe(loadMoreRef.current);
-    }
+    observer.observe(loadMoreElement);
 
     return () => observer.disconnect();
-  }, []);
+  }, [visibleCount]);
 
   // Reset visible count when filters change
   useEffect(() => {
