@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
-import { Plus, Check, Minus, CalendarIcon, Mic, MicOff, ChevronLeft, Sparkles } from 'lucide-react';
+import { Plus, Check, Minus, CalendarIcon, Mic, MicOff, Sparkles } from 'lucide-react';
 import { format, subDays } from 'date-fns';
 import { parseInput } from '@/lib/parser';
 import { PaymentMode, Transaction, NecessityType } from '@/lib/types';
@@ -146,12 +146,6 @@ export function TransactionInput({
       necessity: isIncome ? null : selectedNecessity,
     });
 
-    // Show success toast
-    toast({
-      title: "Added!",
-      description: `${currencySymbol}${parsed.amount.toLocaleString('en-PK')} for ${parsed.reason}`,
-    });
-
     setInput('');
     setSelectedNecessity(null);
     setSelectedDate(new Date());
@@ -175,12 +169,6 @@ export function TransactionInput({
       setIsLongPressing(true);
       haptic('success');
       onRepeatLast();
-      
-      toast({
-        title: "Repeated!",
-        description: `${currencySymbol}${lastTransaction.amount.toLocaleString('en-PK')} for ${lastTransaction.reason}`,
-      });
-      
       setTimeout(() => setIsLongPressing(false), 300);
     }, 500);
   };
@@ -192,7 +180,7 @@ export function TransactionInput({
     }
   };
 
-  // Swipe to backdate
+  // Swipe to change date
   const handleDateTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
   };
@@ -201,19 +189,19 @@ export function TransactionInput({
     const touchEndX = e.changedTouches[0].clientX;
     const diff = touchStartX.current - touchEndX;
     
-    // Swipe left = go back one day
+    // Swipe left = go forward one day (but not past today)
     if (diff > 50) {
-      haptic('light');
-      setSelectedDate(prev => subDays(prev, 1));
-    }
-    // Swipe right = go forward one day (but not past today)
-    else if (diff < -50) {
       const nextDay = new Date(selectedDate);
       nextDay.setDate(nextDay.getDate() + 1);
       if (nextDay <= new Date()) {
         haptic('light');
         setSelectedDate(nextDay);
       }
+    }
+    // Swipe right = go back one day
+    else if (diff < -50) {
+      haptic('light');
+      setSelectedDate(prev => subDays(prev, 1));
     }
   };
 
@@ -303,20 +291,7 @@ export function TransactionInput({
           </PopoverContent>
         </Popover>
         
-        {!isToday && (
-          <button
-            onClick={() => {
-              haptic('light');
-              setSelectedDate(subDays(selectedDate, 1));
-            }}
-            className="p-1.5 rounded-full bg-muted text-muted-foreground hover:text-foreground transition-colors"
-            title="Go back one day"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-        )}
-        
-        <span className="text-xs text-muted-foreground">← swipe date to backdate</span>
+        <span className="text-xs text-muted-foreground">swipe to change date →</span>
       </div>
 
       {/* Main Input with Auto-Complete */}
