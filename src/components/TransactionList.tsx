@@ -196,8 +196,9 @@ export function TransactionList({
 
   return (
     <div className="space-y-3">
-      {/* Filter Toggle */}
-      <div className="flex items-center justify-center">
+      {/* Divider with Filter Toggle */}
+      <div className="flex items-center gap-3">
+        <div className="flex-1 h-px bg-border" />
         <button
           onClick={() => setShowFilters(!showFilters)}
           className={cn(
@@ -214,6 +215,7 @@ export function TransactionList({
             <span className="w-1.5 h-1.5 rounded-full bg-primary" />
           )}
         </button>
+        <div className="flex-1 h-px bg-border" />
       </div>
 
       {/* Collapsible Filter Panel */}
