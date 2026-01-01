@@ -1,5 +1,15 @@
 import { formatAmount } from '@/lib/parser';
 import { cn } from '@/lib/utils';
+import { ChevronDown } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+
+type TimePeriod = 'thisMonth' | 'lastMonth' | 'thisYear' | 'lastYear' | 'allTime';
 
 interface StatsBarProps {
   stats: {
@@ -11,9 +21,24 @@ interface StatsBarProps {
     transactionCount: number;
   };
   currencySymbol: string;
+  timePeriod?: TimePeriod;
+  onTimePeriodChange?: (period: TimePeriod) => void;
 }
 
-export function StatsBar({ stats, currencySymbol }: StatsBarProps) {
+const TIME_PERIOD_LABELS: Record<TimePeriod, string> = {
+  thisMonth: 'This Month',
+  lastMonth: 'Last Month',
+  thisYear: 'This Year',
+  lastYear: 'Last Year',
+  allTime: 'All Time',
+};
+
+export function StatsBar({ 
+  stats, 
+  currencySymbol, 
+  timePeriod = 'thisMonth',
+  onTimePeriodChange 
+}: StatsBarProps) {
   const needsPercent = stats.totalExpenses > 0 
     ? (stats.needsTotal / stats.totalExpenses) * 100 
     : 0;
@@ -27,9 +52,26 @@ export function StatsBar({ stats, currencySymbol }: StatsBarProps) {
     <div className="space-y-4">
       {/* Balance */}
       <div className="text-center">
-        <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">
-          This Month
-        </p>
+        {/* Time Period Dropdown */}
+        {onTimePeriodChange ? (
+          <Select value={timePeriod} onValueChange={(v) => onTimePeriodChange(v as TimePeriod)}>
+            <SelectTrigger className="w-auto mx-auto h-6 px-2 text-xs uppercase tracking-wider text-muted-foreground border-0 bg-transparent hover:bg-muted/50 focus:ring-0">
+              <SelectValue />
+              <ChevronDown className="w-3 h-3 ml-1 opacity-50" />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(TIME_PERIOD_LABELS).map(([value, label]) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : (
+          <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">
+            {TIME_PERIOD_LABELS[timePeriod]}
+          </p>
+        )}
         <p className={cn(
           "text-3xl font-bold font-mono",
           balance >= 0 ? "text-income" : "text-expense"

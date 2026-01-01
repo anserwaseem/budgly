@@ -1,11 +1,11 @@
 import { Transaction, NecessityType } from '@/lib/types';
 import { TransactionCard } from './TransactionCard';
 import { getRelativeDate } from '@/lib/parser';
-import { Receipt, Sparkles, TrendingUp, Zap, ChevronDown, Search, X, SlidersHorizontal } from 'lucide-react';
-import { useState, useEffect, useMemo } from 'react';
+import { Receipt, Sparkles, TrendingUp, Zap, ChevronDown, Search, X, SlidersHorizontal, ChevronUp, Calendar } from 'lucide-react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
+import { format, startOfDay, endOfDay, subDays, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, subYears } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -14,6 +14,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 
 interface TransactionListProps {
   groupedTransactions: [string, { transactions: Transaction[], dayTotal: number }][];
@@ -32,6 +35,54 @@ const emptyStateTips = [
 ];
 
 type GroupMode = 'day' | 'month' | 'year';
+type DatePreset = 'all' | 'today' | 'yesterday' | 'last7days' | 'last30days' | 'thisMonth' | 'lastMonth' | 'thisYear' | 'lastYear' | 'custom';
+
+const DATE_PRESETS: { value: DatePreset; label: string }[] = [
+  { value: 'all', label: 'All Time' },
+  { value: 'today', label: 'Today' },
+  { value: 'yesterday', label: 'Yesterday' },
+  { value: 'last7days', label: 'Last 7 Days' },
+  { value: 'last30days', label: 'Last 30 Days' },
+  { value: 'thisMonth', label: 'This Month' },
+  { value: 'lastMonth', label: 'Last Month' },
+  { value: 'thisYear', label: 'This Year' },
+  { value: 'lastYear', label: 'Last Year' },
+  { value: 'custom', label: 'Custom Range' },
+];
+
+const ITEMS_PER_PAGE = 20;
+
+function getDateRangeFromPreset(preset: DatePreset): { start: Date | null; end: Date | null } {
+  const now = new Date();
+  
+  switch (preset) {
+    case 'all':
+      return { start: null, end: null };
+    case 'today':
+      return { start: startOfDay(now), end: endOfDay(now) };
+    case 'yesterday':
+      const yesterday = subDays(now, 1);
+      return { start: startOfDay(yesterday), end: endOfDay(yesterday) };
+    case 'last7days':
+      return { start: startOfDay(subDays(now, 6)), end: endOfDay(now) };
+    case 'last30days':
+      return { start: startOfDay(subDays(now, 29)), end: endOfDay(now) };
+    case 'thisMonth':
+      return { start: startOfMonth(now), end: endOfMonth(now) };
+    case 'lastMonth':
+      const lastMonth = subMonths(now, 1);
+      return { start: startOfMonth(lastMonth), end: endOfMonth(lastMonth) };
+    case 'thisYear':
+      return { start: startOfYear(now), end: endOfYear(now) };
+    case 'lastYear':
+      const lastYear = subYears(now, 1);
+      return { start: startOfYear(lastYear), end: endOfYear(lastYear) };
+    case 'custom':
+      return { start: null, end: null };
+    default:
+      return { start: null, end: null };
+  }
+}
 
 export function TransactionList({ 
   groupedTransactions, 
@@ -48,6 +99,19 @@ export function TransactionList({
   const [typeFilter, setTypeFilter] = useState<'all' | 'expense' | 'income'>('all');
   const [necessityFilter, setNecessityFilter] = useState<'all' | 'need' | 'want' | 'uncategorized'>('all');
   const [showFilters, setShowFilters] = useState(false);
+  
+  // Date range filter
+  const [datePreset, setDatePreset] = useState<DatePreset>('all');
+  const [customStartDate, setCustomStartDate] = useState<Date | undefined>();
+  const [customEndDate, setCustomEndDate] = useState<Date | undefined>();
+  const [showStartPicker, setShowStartPicker] = useState(false);
+  const [showEndPicker, setShowEndPicker] = useState(false);
+  
+  // Virtualization
+  const [visibleCount, setVisibleCount] = useState(ITEMS_PER_PAGE);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const listRef = useRef<HTMLDivElement>(null);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
   // Rotate tips every 4 seconds
   useEffect(() => {
@@ -60,10 +124,64 @@ export function TransactionList({
     return () => clearInterval(interval);
   }, [groupedTransactions.length]);
 
-  // Filter transactions first
+  // Scroll to top visibility
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 400);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Infinite scroll with Intersection Observer
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setVisibleCount(prev => prev + ITEMS_PER_PAGE);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
+  // Reset visible count when filters change
+  useEffect(() => {
+    setVisibleCount(ITEMS_PER_PAGE);
+  }, [searchQuery, typeFilter, necessityFilter, datePreset, customStartDate, customEndDate]);
+
+  const scrollToTop = useCallback(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
+  // Get date range based on preset or custom
+  const dateRange = useMemo(() => {
+    if (datePreset === 'custom') {
+      return {
+        start: customStartDate ? startOfDay(customStartDate) : null,
+        end: customEndDate ? endOfDay(customEndDate) : null,
+      };
+    }
+    return getDateRangeFromPreset(datePreset);
+  }, [datePreset, customStartDate, customEndDate]);
+
+  // Filter transactions first (including date range)
   const filteredGroupedTransactions = useMemo(() => {
     return groupedTransactions.map(([date, { transactions, dayTotal }]) => {
       const filtered = transactions.filter(t => {
+        // Date range filter
+        if (dateRange.start || dateRange.end) {
+          const txDate = new Date(t.date);
+          if (dateRange.start && txDate < dateRange.start) return false;
+          if (dateRange.end && txDate > dateRange.end) return false;
+        }
+        
         // Search filter
         if (searchQuery) {
           const query = searchQuery.toLowerCase();
@@ -91,7 +209,7 @@ export function TransactionList({
       
       return [date, { transactions: filtered, dayTotal: filteredTotal }] as [string, { transactions: Transaction[], dayTotal: number }];
     }).filter(([, { transactions }]) => transactions.length > 0);
-  }, [groupedTransactions, searchQuery, typeFilter, necessityFilter]);
+  }, [groupedTransactions, searchQuery, typeFilter, necessityFilter, dateRange]);
 
   // Regroup transactions based on mode
   const regroupedTransactions = useMemo(() => {
@@ -133,6 +251,14 @@ export function TransactionList({
     
     return result;
   }, [filteredGroupedTransactions, groupMode]);
+
+  // Virtualized (paginated) transactions
+  const visibleTransactions = useMemo(() => {
+    return regroupedTransactions.slice(0, visibleCount);
+  }, [regroupedTransactions, visibleCount]);
+
+  const hasMore = visibleCount < regroupedTransactions.length;
+  const totalFilteredCount = filteredGroupedTransactions.reduce((sum, [, { transactions }]) => sum + transactions.length, 0);
 
   const toggleGroup = (key: string) => {
     setExpandedGroups(prev => {
@@ -192,10 +318,10 @@ export function TransactionList({
     );
   }
 
-  const hasActiveFilters = searchQuery || typeFilter !== 'all' || necessityFilter !== 'all';
+  const hasActiveFilters = searchQuery || typeFilter !== 'all' || necessityFilter !== 'all' || datePreset !== 'all';
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3" ref={listRef}>
       {/* Divider with Filter Toggle */}
       <div className="flex items-center gap-3">
         <div className="flex-1 h-px bg-border" />
@@ -222,24 +348,103 @@ export function TransactionList({
       <Collapsible open={showFilters}>
         <CollapsibleContent>
           <div className="space-y-3 p-3 bg-muted/30 rounded-2xl border border-border/50 animate-fade-in">
-            {/* Search */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Search transactions..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 pr-9 h-9 text-sm bg-background rounded-xl"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
+            {/* Date Range + Search Row */}
+            <div className="flex items-center gap-2">
+              {/* Date Range Preset */}
+              <Select value={datePreset} onValueChange={(v) => setDatePreset(v as DatePreset)}>
+                <SelectTrigger className="w-auto min-w-[120px] h-9 text-xs rounded-xl bg-background border-border/50">
+                  <Calendar className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {DATE_PRESETS.map(preset => (
+                    <SelectItem key={preset.value} value={preset.value}>
+                      {preset.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Search */}
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 pr-9 h-9 text-sm bg-background rounded-xl"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
             </div>
+
+            {/* Custom Date Range Pickers */}
+            {datePreset === 'custom' && (
+              <div className="flex items-center gap-2">
+                <Popover open={showStartPicker} onOpenChange={setShowStartPicker}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "flex-1 h-9 justify-start text-left text-xs font-normal rounded-xl",
+                        !customStartDate && "text-muted-foreground"
+                      )}
+                    >
+                      <Calendar className="mr-2 h-3.5 w-3.5" />
+                      {customStartDate ? format(customStartDate, "MMM d, yyyy") : "From date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={customStartDate}
+                      onSelect={(date) => {
+                        setCustomStartDate(date);
+                        setShowStartPicker(false);
+                      }}
+                      initialFocus
+                      className="p-3 pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+
+                <span className="text-xs text-muted-foreground">to</span>
+
+                <Popover open={showEndPicker} onOpenChange={setShowEndPicker}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "flex-1 h-9 justify-start text-left text-xs font-normal rounded-xl",
+                        !customEndDate && "text-muted-foreground"
+                      )}
+                    >
+                      <Calendar className="mr-2 h-3.5 w-3.5" />
+                      {customEndDate ? format(customEndDate, "MMM d, yyyy") : "To date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={customEndDate}
+                      onSelect={(date) => {
+                        setCustomEndDate(date);
+                        setShowEndPicker(false);
+                      }}
+                      initialFocus
+                      className="p-3 pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            )}
             
             {/* Filters Row */}
             <div className="flex items-center gap-2 flex-wrap">
@@ -296,6 +501,9 @@ export function TransactionList({
                     setSearchQuery('');
                     setTypeFilter('all');
                     setNecessityFilter('all');
+                    setDatePreset('all');
+                    setCustomStartDate(undefined);
+                    setCustomEndDate(undefined);
                   }}
                   className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-muted/50 transition-colors"
                 >
@@ -304,13 +512,18 @@ export function TransactionList({
                 </button>
               )}
             </div>
+
+            {/* Results count */}
+            <div className="text-xs text-muted-foreground text-center">
+              Showing {totalFilteredCount} transaction{totalFilteredCount !== 1 ? 's' : ''}
+            </div>
           </div>
         </CollapsibleContent>
       </Collapsible>
 
       {/* Transaction Groups */}
       <div className="space-y-2">
-        {regroupedTransactions.map(([key, { transactions, dayTotal }], groupIdx) => {
+        {visibleTransactions.map(([key, { transactions, dayTotal }], groupIdx) => {
           const isExpanded = expandedGroups.has(key);
           
           return (
@@ -319,7 +532,7 @@ export function TransactionList({
               open={isExpanded}
               onOpenChange={() => toggleGroup(key)}
               className="animate-slide-up"
-              style={{ animationDelay: `${groupIdx * 50}ms` }}
+              style={{ animationDelay: `${Math.min(groupIdx, 5) * 50}ms` }}
             >
               <CollapsibleTrigger className="w-full">
                 <div className="flex items-center justify-between px-4 py-3 bg-muted/50 rounded-xl hover:bg-muted transition-colors group">
@@ -349,7 +562,7 @@ export function TransactionList({
                     <div
                       key={transaction.id}
                       className="animate-fade-in"
-                      style={{ animationDelay: `${idx * 30}ms` }}
+                      style={{ animationDelay: `${Math.min(idx, 10) * 30}ms` }}
                     >
                       <TransactionCard
                         transaction={transaction}
@@ -367,7 +580,29 @@ export function TransactionList({
             </Collapsible>
           );
         })}
+
+        {/* Load More Trigger */}
+        {hasMore && (
+          <div ref={loadMoreRef} className="flex justify-center py-4">
+            <div className="text-xs text-muted-foreground animate-pulse">
+              Loading more...
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Scroll to Top Button */}
+      {showScrollTop && (
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-24 right-6 w-10 h-10 rounded-full bg-muted/90 backdrop-blur-sm 
+                     border border-border shadow-lg hover:bg-muted transition-all 
+                     flex items-center justify-center z-40 animate-fade-in"
+          aria-label="Scroll to top"
+        >
+          <ChevronUp className="w-5 h-5 text-foreground" />
+        </button>
+      )}
     </div>
   );
 }

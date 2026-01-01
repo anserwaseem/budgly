@@ -20,9 +20,11 @@ const Index = () => {
     theme,
     settings,
     stats,
+    timePeriod,
     groupedTransactions,
     quickAddSuggestions,
     toggleTheme,
+    setTimePeriod,
     addTransaction,
     deleteTransaction,
     updateNecessity,
@@ -101,7 +103,12 @@ const Index = () => {
         {activeTab === 'transactions' ? (
           <>
             <section className="py-6 border-b border-border">
-              <StatsBar stats={stats} currencySymbol={settings.currencySymbol} />
+              <StatsBar 
+                stats={stats} 
+                currencySymbol={settings.currencySymbol} 
+                timePeriod={timePeriod}
+                onTimePeriodChange={setTimePeriod}
+              />
             </section>
 
             <section className="py-6 border-b border-border">
