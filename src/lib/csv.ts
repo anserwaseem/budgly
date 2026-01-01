@@ -4,10 +4,12 @@ const CSV_HEADERS = ['date', 'reason', 'amount', 'paymentMode', 'type', 'necessi
 
 export function generateCSVTemplate(): string {
   const headers = CSV_HEADERS.join(',');
+  // Use current year for example dates
+  const currentYear = new Date().getFullYear();
   const exampleRows = [
-    '2025-01-15,Groceries,2500,Cash,expense,need',
-    '2025-01-15,Coffee,350,JC,expense,want',
-    '2025-01-14,Salary,50000,Bank,income,',
+    `${currentYear}-01-15,Groceries,2500,Cash,expense,need`,
+    `${currentYear}-01-15,Coffee,350,JC,expense,want`,
+    `${currentYear}-01-14,Salary,50000,Bank,income,`,
   ];
   return [headers, ...exampleRows].join('\n');
 }
