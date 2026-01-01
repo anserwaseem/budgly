@@ -16,7 +16,7 @@ export function AIChatDialog({ apiKey, transactions, currencySymbol, onClose }: 
     {
       id: '1',
       role: 'assistant',
-      content: 'Assalam o alaikum! Main aapka budget assistant hoon. Mujhse kuch bhi poocho - "Meri wants kaisi hain?", "Is mahine kitna kharch hua?", ya koi bhi sawal! 💰',
+      content: 'Hello! I\'m your personal budget assistant. Ask me anything about your finances — "How are my wants doing?", "What did I spend this month?", or any question in any language you prefer!',
       timestamp: new Date().toISOString(),
     },
   ]);
@@ -31,14 +31,29 @@ export function AIChatDialog({ apiKey, transactions, currencySymbol, onClose }: 
   const getFinancialContext = () => {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
     
     const thisMonth = transactions.filter(
       (t) => new Date(t.date) >= startOfMonth && t.type === 'expense'
     );
+    const thisMonthIncome = transactions.filter(
+      (t) => new Date(t.date) >= startOfMonth && t.type === 'income'
+    );
+    const lastMonth = transactions.filter(
+      (t) => new Date(t.date) >= startOfLastMonth && new Date(t.date) <= endOfLastMonth && t.type === 'expense'
+    );
+    const lastMonthIncome = transactions.filter(
+      (t) => new Date(t.date) >= startOfLastMonth && new Date(t.date) <= endOfLastMonth && t.type === 'income'
+    );
     
     const totalExpenses = thisMonth.reduce((sum, t) => sum + t.amount, 0);
+    const totalIncome = thisMonthIncome.reduce((sum, t) => sum + t.amount, 0);
+    const lastMonthExpenses = lastMonth.reduce((sum, t) => sum + t.amount, 0);
+    const lastMonthIncomeTotal = lastMonthIncome.reduce((sum, t) => sum + t.amount, 0);
     const needsTotal = thisMonth.filter((t) => t.necessity === 'need').reduce((sum, t) => sum + t.amount, 0);
     const wantsTotal = thisMonth.filter((t) => t.necessity === 'want').reduce((sum, t) => sum + t.amount, 0);
+    const savings = totalIncome - totalExpenses;
     
     const topExpenses = [...thisMonth]
       .sort((a, b) => b.amount - a.amount)
@@ -47,20 +62,22 @@ export function AIChatDialog({ apiKey, transactions, currencySymbol, onClose }: 
       .join(', ');
 
     return `
-User's Financial Data (Current Month):
+User's Financial Data:
+
+CURRENT MONTH:
 - Total Expenses: ${currencySymbol}${formatAmount(totalExpenses)}
-- Needs Total: ${currencySymbol}${formatAmount(needsTotal)}
-- Wants Total: ${currencySymbol}${formatAmount(wantsTotal)}
+- Total Income: ${currencySymbol}${formatAmount(totalIncome)}
+- Net Savings: ${currencySymbol}${formatAmount(savings)}
+- Needs (essentials): ${currencySymbol}${formatAmount(needsTotal)}
+- Wants (non-essentials): ${currencySymbol}${formatAmount(wantsTotal)}
 - Number of Transactions: ${thisMonth.length}
 - Top 5 Expenses: ${topExpenses || 'No transactions yet'}
-- Currency: ${currencySymbol}
 
-Remember to:
-1. Respond in Roman Urdu (Urdu written in English letters) with some English financial terms
-2. Be friendly and encouraging
-3. Give practical advice based on the data
-4. Use emojis sparingly
-5. Keep responses concise but helpful
+LAST MONTH:
+- Total Expenses: ${currencySymbol}${formatAmount(lastMonthExpenses)}
+- Total Income: ${currencySymbol}${formatAmount(lastMonthIncomeTotal)}
+
+Currency: ${currencySymbol}
 `;
   };
 
@@ -80,7 +97,7 @@ Remember to:
 
     try {
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -89,13 +106,19 @@ Remember to:
               {
                 parts: [
                   {
-                    text: `You are a friendly Pakistani budget advisor who speaks in Roman Urdu (Urdu written in English letters). You help users understand their spending habits and give practical advice.
+                    text: `You are a professional and helpful personal finance assistant. Your role is to help users understand their spending habits, analyze their financial data, and provide practical budgeting advice.
 
 ${getFinancialContext()}
 
 User's Question: ${input.trim()}
 
-Respond naturally in Roman Urdu, mixing in English financial terms when needed. Be encouraging and helpful!`,
+Guidelines:
+1. Respond in English (professional tone)
+2. Be concise but thorough
+3. Use the actual financial data provided above to answer questions
+4. Give practical, actionable advice when appropriate
+5. If the user asks about something not in the data, let them know politely
+6. Format numbers with the correct currency symbol`,
                   },
                 ],
               },
@@ -109,8 +132,14 @@ Respond naturally in Roman Urdu, mixing in English financial terms when needed. 
       );
 
       const data = await response.json();
+      
+      if (data.error) {
+        console.error('Gemini API Error:', data.error);
+        throw new Error(data.error.message || 'API error');
+      }
+
       const aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || 
-        'Sorry, kuch masla ho gaya. Dobara try karein!';
+        'I couldn\'t process that request. Please try again.';
 
       const assistantMessage: ChatMessage = {
         id: crypto.randomUUID(),
@@ -125,7 +154,7 @@ Respond naturally in Roman Urdu, mixing in English financial terms when needed. 
       const errorMessage: ChatMessage = {
         id: crypto.randomUUID(),
         role: 'assistant',
-        content: 'Maaf kijiye, network mein masla hai. Apna internet check karein aur dobara try karein!',
+        content: 'Sorry, there was an error connecting to the AI service. Please check your API key in Settings and try again.',
         timestamp: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, errorMessage]);
@@ -148,7 +177,7 @@ Respond naturally in Roman Urdu, mixing in English financial terms when needed. 
           <Sparkles className="w-12 h-12 text-primary mx-auto mb-4" />
           <h2 className="text-lg font-semibold mb-2">AI Assistant Setup</h2>
           <p className="text-sm text-muted-foreground mb-4">
-            AI assistant use karne ke liye, pehle Settings mein apni Gemini API key add karein.
+            To use the AI assistant, please add your Gemini API key in Settings first.
           </p>
           <button
             onClick={onClose}
@@ -170,8 +199,8 @@ Respond naturally in Roman Urdu, mixing in English financial terms when needed. 
             <Sparkles className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <h2 className="font-semibold">Budget Buddy</h2>
-            <p className="text-xs text-muted-foreground">Aapka personal finance advisor</p>
+            <h2 className="font-semibold">Budget Assistant</h2>
+            <p className="text-xs text-muted-foreground">Your personal finance advisor</p>
           </div>
         </div>
         <button
@@ -200,7 +229,7 @@ Respond naturally in Roman Urdu, mixing in English financial terms when needed. 
         {isLoading && (
           <div className="flex items-center gap-2 text-muted-foreground">
             <Loader2 className="w-4 h-4 animate-spin" />
-            <span className="text-sm">Soch raha hoon...</span>
+            <span className="text-sm">Thinking...</span>
           </div>
         )}
         <div ref={messagesEndRef} />
@@ -214,7 +243,7 @@ Respond naturally in Roman Urdu, mixing in English financial terms when needed. 
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Apna sawal likhein..."
+            placeholder="Ask about your finances..."
             className="flex-1 bg-card border border-border rounded-lg px-4 py-3 
                        focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
             disabled={isLoading}
