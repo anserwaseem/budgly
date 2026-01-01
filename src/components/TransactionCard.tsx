@@ -5,6 +5,7 @@ import { formatAmount } from '@/lib/parser';
 import { cn, haptic } from '@/lib/utils';
 import { SwipeableCard } from './SwipeableCard';
 import { toast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
 
 interface TransactionCardProps {
   transaction: Transaction;
@@ -13,6 +14,7 @@ interface TransactionCardProps {
   onEdit: (transaction: Transaction) => void;
   onUpdateNecessity: (id: string, necessity: NecessityType) => void;
   onDuplicate?: (transaction: Transaction) => void;
+  showDate?: boolean;
 }
 
 export function TransactionCard({ 
@@ -22,6 +24,7 @@ export function TransactionCard({
   onEdit,
   onUpdateNecessity,
   onDuplicate,
+  showDate = false,
 }: TransactionCardProps) {
   const lastTapRef = useRef<number>(0);
   const doubleTapTimer = useRef<NodeJS.Timeout | null>(null);
@@ -102,9 +105,15 @@ export function TransactionCard({
           <p className="font-medium capitalize truncate text-foreground">
             {transaction.reason}
           </p>
-          <p className="text-xs text-muted-foreground">
-            {transaction.paymentMode}
-          </p>
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <span>{transaction.paymentMode}</span>
+            {showDate && (
+              <>
+                <span>•</span>
+                <span>{format(new Date(transaction.date), 'd MMM')}</span>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Amount */}
