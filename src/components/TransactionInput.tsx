@@ -108,7 +108,7 @@ export function TransactionInput({ paymentModes, currencySymbol, onAdd }: Transa
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="chai JC 50"
+          placeholder="Grocery CC 9500"
           className="w-full bg-card border border-border rounded-xl px-4 py-3.5 text-lg font-mono 
                      placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 
                      focus:ring-primary/30 focus:border-primary transition-all pr-14"
