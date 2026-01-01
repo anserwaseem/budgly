@@ -56,13 +56,17 @@ export function formatAmount(amount: number): string {
   }).format(amount);
 }
 
-export function formatDate(dateStr: string): string {
+export function formatDate(dateStr: string, includeYear: boolean = false): string {
   const date = new Date(dateStr);
-  return date.toLocaleDateString('en-US', {
+  const options: Intl.DateTimeFormatOptions = {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
-  });
+  };
+  if (includeYear) {
+    options.year = 'numeric';
+  }
+  return date.toLocaleDateString('en-US', options);
 }
 
 export function getRelativeDate(dateStr: string): string {
@@ -70,6 +74,9 @@ export function getRelativeDate(dateStr: string): string {
   const today = new Date();
   const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
+  
+  // Check if date is from a different year
+  const isCurrentYear = date.getFullYear() === today.getFullYear();
 
   if (date.toDateString() === today.toDateString()) {
     return 'Today';
@@ -77,5 +84,7 @@ export function getRelativeDate(dateStr: string): string {
   if (date.toDateString() === yesterday.toDateString()) {
     return 'Yesterday';
   }
-  return formatDate(dateStr);
+  
+  // Include year only if it's not the current year
+  return formatDate(dateStr, !isCurrentYear);
 }

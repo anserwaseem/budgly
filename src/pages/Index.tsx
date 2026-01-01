@@ -8,7 +8,7 @@ import { Dashboard } from '@/components/Dashboard';
 import { SettingsDialog } from '@/components/SettingsDialog';
 import { EditTransactionDialog } from '@/components/EditTransactionDialog';
 import { AIChatDialog } from '@/components/AIChatDialog';
-import { Transaction } from '@/lib/types';
+import { Transaction, PaymentMode } from '@/lib/types';
 import { BarChart3, List, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -117,7 +117,11 @@ const Index = () => {
           transactions={transactions}
           onSaveSettings={updateSettings}
           onSavePaymentModes={updatePaymentModes}
-          onImportTransactions={(newTransactions) => {
+          onImportTransactions={(newTransactions, newModes?: PaymentMode[]) => {
+            // Save new payment modes first
+            if (newModes && newModes.length > 0) {
+              updatePaymentModes([...paymentModes, ...newModes]);
+            }
             newTransactions.forEach((t) => addTransaction(t));
           }}
           onClose={() => setShowSettings(false)}
