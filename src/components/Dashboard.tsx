@@ -2,8 +2,9 @@ import { useMemo } from 'react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, LineChart, Line, AreaChart, Area } from 'recharts';
 import { Transaction } from '@/lib/types';
 import { formatAmount } from '@/lib/parser';
-import { TrendingUp, TrendingDown, Wallet, Target, Calendar, CreditCard, PiggyBank, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { TrendingUp, TrendingDown, Wallet, Target, Calendar, CreditCard, PiggyBank, ArrowUpRight, ArrowDownRight, Flame, Award, Repeat, DollarSign, CalendarCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
 
 interface DashboardProps {
   transactions: Transaction[];
@@ -135,6 +136,64 @@ export function Dashboard({ transactions, currencySymbol }: DashboardProps) {
       ? ((thisMonthTotal - lastMonthTotal) / lastMonthTotal) * 100 
       : 0;
 
+    // Biggest expense this month
+    const biggestExpense = thisMonth.length > 0 
+      ? thisMonth.reduce((max, t) => t.amount > max.amount ? t : max, thisMonth[0])
+      : null;
+
+    // Most frequent category
+    const frequencyByReason: Record<string, number> = {};
+    thisMonth.forEach(t => {
+      const reason = t.reason || 'Other';
+      frequencyByReason[reason] = (frequencyByReason[reason] || 0) + 1;
+    });
+    const mostFrequentCategory = Object.entries(frequencyByReason)
+      .sort(([, a], [, b]) => b - a)[0];
+
+    // Average transaction size
+    const avgTransactionSize = transactionCount > 0 
+      ? thisMonthTotal / transactionCount 
+      : 0;
+
+    // Days with spending
+    const uniqueSpendingDays = new Set(
+      thisMonth.map(t => new Date(t.date).toDateString())
+    ).size;
+
+    // Spending streak (consecutive days with expenses)
+    const today = new Date();
+    let streakDays = 0;
+    for (let i = 0; i < 30; i++) {
+      const checkDate = new Date(today);
+      checkDate.setDate(checkDate.getDate() - i);
+      const dateStr = checkDate.toDateString();
+      const hasExpense = transactions.some(
+        t => new Date(t.date).toDateString() === dateStr && t.type === 'expense'
+      );
+      if (hasExpense) {
+        streakDays++;
+      } else if (i > 0) {
+        break;
+      }
+    }
+
+    // Best/worst spending day this month
+    const dailyTotals: Record<string, number> = {};
+    thisMonth.forEach(t => {
+      const dateStr = new Date(t.date).toDateString();
+      dailyTotals[dateStr] = (dailyTotals[dateStr] || 0) + t.amount;
+    });
+    const dailyTotalsArr = Object.entries(dailyTotals);
+    const bestDay = dailyTotalsArr.length > 0 
+      ? dailyTotalsArr.reduce((min, curr) => curr[1] < min[1] ? curr : min)
+      : null;
+    const worstDay = dailyTotalsArr.length > 0 
+      ? dailyTotalsArr.reduce((max, curr) => curr[1] > max[1] ? curr : max)
+      : null;
+
+    // Needs/wants ratio
+    const needsWantsRatio = wantsTotal > 0 ? needsTotal / wantsTotal : needsTotal > 0 ? Infinity : 0;
+
     return {
       thisMonthTotal,
       lastMonthTotal,
@@ -154,6 +213,14 @@ export function Dashboard({ transactions, currencySymbol }: DashboardProps) {
       byMode: Object.entries(byMode).map(([name, value]) => ({ name, value })),
       dailyData,
       monthlyTrend,
+      biggestExpense,
+      mostFrequentCategory,
+      avgTransactionSize,
+      uniqueSpendingDays,
+      streakDays,
+      bestDay,
+      worstDay,
+      needsWantsRatio,
     };
   }, [transactions]);
 
@@ -280,6 +347,109 @@ export function Dashboard({ transactions, currencySymbol }: DashboardProps) {
           <p className="text-xs text-muted-foreground mt-1">This month</p>
         </div>
       </div>
+
+      {/* New Insights Row 1 */}
+      <div className="grid grid-cols-2 gap-3">
+        {/* Spending Streak */}
+        <div className="bg-card border border-border rounded-xl p-4">
+          <div className="flex items-center gap-2 text-muted-foreground mb-2">
+            <Flame className="w-4 h-4" />
+            <span className="text-xs uppercase tracking-wider">Streak</span>
+          </div>
+          <p className="text-xl font-bold font-mono text-foreground">
+            {analytics.streakDays} {analytics.streakDays === 1 ? 'day' : 'days'}
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">Consecutive spending</p>
+        </div>
+
+        {/* Avg Transaction */}
+        <div className="bg-card border border-border rounded-xl p-4">
+          <div className="flex items-center gap-2 text-muted-foreground mb-2">
+            <DollarSign className="w-4 h-4" />
+            <span className="text-xs uppercase tracking-wider">Avg/Txn</span>
+          </div>
+          <p className="text-xl font-bold font-mono text-foreground">
+            {currencySymbol}{formatAmount(analytics.avgTransactionSize)}
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">Per transaction</p>
+        </div>
+      </div>
+
+      {/* New Insights Row 2 */}
+      <div className="grid grid-cols-2 gap-3">
+        {/* Active Days */}
+        <div className="bg-card border border-border rounded-xl p-4">
+          <div className="flex items-center gap-2 text-muted-foreground mb-2">
+            <CalendarCheck className="w-4 h-4" />
+            <span className="text-xs uppercase tracking-wider">Active Days</span>
+          </div>
+          <p className="text-xl font-bold font-mono text-foreground">
+            {analytics.uniqueSpendingDays}
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">Days with expenses</p>
+        </div>
+
+        {/* Most Frequent */}
+        {analytics.mostFrequentCategory && (
+          <div className="bg-card border border-border rounded-xl p-4">
+            <div className="flex items-center gap-2 text-muted-foreground mb-2">
+              <Repeat className="w-4 h-4" />
+              <span className="text-xs uppercase tracking-wider">Most Frequent</span>
+            </div>
+            <p className="text-lg font-bold text-foreground capitalize truncate">
+              {analytics.mostFrequentCategory[0]}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {analytics.mostFrequentCategory[1]} times this month
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Biggest Expense & Best/Worst Day */}
+      {analytics.biggestExpense && (
+        <div className="bg-card border border-border rounded-xl p-4">
+          <div className="flex items-center gap-2 text-muted-foreground mb-2">
+            <Award className="w-4 h-4" />
+            <span className="text-xs uppercase tracking-wider">Biggest Expense</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <p className="font-medium capitalize truncate max-w-[60%]">
+              {analytics.biggestExpense.reason || 'Unknown'}
+            </p>
+            <p className="text-lg font-bold font-mono text-expense">
+              {currencySymbol}{formatAmount(analytics.biggestExpense.amount)}
+            </p>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            {format(new Date(analytics.biggestExpense.date), 'MMM d')} via {analytics.biggestExpense.paymentMode}
+          </p>
+        </div>
+      )}
+
+      {/* Best & Worst Day */}
+      {analytics.bestDay && analytics.worstDay && analytics.bestDay[0] !== analytics.worstDay[0] && (
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-card border border-border rounded-xl p-4">
+            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Best Day</p>
+            <p className="font-mono font-bold text-income">
+              {currencySymbol}{formatAmount(analytics.bestDay[1])}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {format(new Date(analytics.bestDay[0]), 'MMM d')}
+            </p>
+          </div>
+          <div className="bg-card border border-border rounded-xl p-4">
+            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Worst Day</p>
+            <p className="font-mono font-bold text-expense">
+              {currencySymbol}{formatAmount(analytics.worstDay[1])}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {format(new Date(analytics.worstDay[0]), 'MMM d')}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Daily Income vs Expense Chart */}
       <div className="bg-card border border-border rounded-xl p-4">

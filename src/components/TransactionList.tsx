@@ -1,8 +1,11 @@
 import { Transaction, NecessityType } from '@/lib/types';
 import { TransactionCard } from './TransactionCard';
 import { getRelativeDate } from '@/lib/parser';
-import { Receipt, Sparkles, TrendingUp, Zap } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { Receipt, Sparkles, TrendingUp, Zap, ChevronDown } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
 
 interface TransactionListProps {
   groupedTransactions: [string, { transactions: Transaction[], dayTotal: number }][];
@@ -20,6 +23,8 @@ const emptyStateTips = [
   { icon: TrendingUp, text: "Categorize as Need or Want to track habits" },
 ];
 
+type GroupMode = 'day' | 'month' | 'year';
+
 export function TransactionList({ 
   groupedTransactions, 
   currencySymbol,
@@ -29,6 +34,8 @@ export function TransactionList({
   onDuplicate,
 }: TransactionListProps) {
   const [tipIndex, setTipIndex] = useState(0);
+  const [groupMode, setGroupMode] = useState<GroupMode>('day');
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
   // Rotate tips every 4 seconds
   useEffect(() => {
@@ -40,6 +47,70 @@ export function TransactionList({
     
     return () => clearInterval(interval);
   }, [groupedTransactions.length]);
+
+  // Regroup transactions based on mode
+  const regroupedTransactions = useMemo(() => {
+    if (groupMode === 'day') {
+      // Default day grouping - expand most recent by default
+      if (expandedGroups.size === 0 && groupedTransactions.length > 0) {
+        setExpandedGroups(new Set([groupedTransactions[0][0]]));
+      }
+      return groupedTransactions;
+    }
+
+    // Flatten all transactions
+    const allTransactions = groupedTransactions.flatMap(([, { transactions }]) => transactions);
+    
+    // Group by month or year
+    const grouped: Record<string, { transactions: Transaction[], dayTotal: number }> = {};
+    
+    allTransactions.forEach(t => {
+      const date = new Date(t.date);
+      const key = groupMode === 'month' 
+        ? format(date, 'yyyy-MM') 
+        : format(date, 'yyyy');
+      
+      if (!grouped[key]) {
+        grouped[key] = { transactions: [], dayTotal: 0 };
+      }
+      grouped[key].transactions.push(t);
+      if (t.type === 'expense') {
+        grouped[key].dayTotal += t.amount;
+      }
+    });
+
+    const result = Object.entries(grouped).sort((a, b) => b[0].localeCompare(a[0]));
+    
+    // Expand most recent by default when switching modes
+    if (result.length > 0 && !expandedGroups.has(result[0][0])) {
+      setExpandedGroups(new Set([result[0][0]]));
+    }
+    
+    return result;
+  }, [groupedTransactions, groupMode]);
+
+  const toggleGroup = (key: string) => {
+    setExpandedGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  };
+
+  const getGroupLabel = (key: string) => {
+    if (groupMode === 'day') {
+      return getRelativeDate(key);
+    }
+    if (groupMode === 'month') {
+      const [year, month] = key.split('-');
+      return format(new Date(parseInt(year), parseInt(month) - 1), 'MMMM yyyy');
+    }
+    return key; // year
+  };
 
   if (groupedTransactions.length === 0) {
     const currentTip = emptyStateTips[tipIndex];
@@ -77,43 +148,87 @@ export function TransactionList({
   }
 
   return (
-    <div className="space-y-6">
-      {groupedTransactions.map(([dateKey, { transactions, dayTotal }], groupIdx) => (
-        <div 
-          key={dateKey} 
-          className="space-y-2 animate-slide-up"
-          style={{ animationDelay: `${groupIdx * 50}ms` }}
-        >
-          <div className="flex items-center justify-between px-1">
-            <h3 className="text-sm font-medium text-muted-foreground">
-              {getRelativeDate(dateKey)}
-            </h3>
-            {dayTotal > 0 && (
-              <span className="text-sm font-mono font-medium text-expense">
-                −{currencySymbol}{dayTotal.toLocaleString('en-PK')}
-              </span>
+    <div className="space-y-4">
+      {/* Group Mode Toggle */}
+      <div className="flex gap-1 p-1 bg-muted rounded-lg w-fit">
+        {(['day', 'month', 'year'] as GroupMode[]).map(mode => (
+          <button
+            key={mode}
+            onClick={() => {
+              setGroupMode(mode);
+              setExpandedGroups(new Set());
+            }}
+            className={cn(
+              "px-3 py-1 rounded-md text-xs font-medium transition-all capitalize",
+              groupMode === mode 
+                ? "bg-background text-foreground shadow-sm" 
+                : "text-muted-foreground hover:text-foreground"
             )}
-          </div>
-          <div className="space-y-1">
-            {transactions.map((transaction, idx) => (
-              <div
-                key={transaction.id}
-                className="animate-slide-up"
-                style={{ animationDelay: `${(groupIdx * 50) + (idx * 30)}ms` }}
-              >
-                <TransactionCard
-                  transaction={transaction}
-                  currencySymbol={currencySymbol}
-                  onDelete={onDelete}
-                  onEdit={onEdit}
-                  onUpdateNecessity={onUpdateNecessity}
-                  onDuplicate={onDuplicate}
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
+          >
+            {mode}
+          </button>
+        ))}
+      </div>
+
+      {/* Transaction Groups */}
+      <div className="space-y-2">
+        {regroupedTransactions.map(([key, { transactions, dayTotal }], groupIdx) => {
+          const isExpanded = expandedGroups.has(key);
+          
+          return (
+            <Collapsible
+              key={key}
+              open={isExpanded}
+              onOpenChange={() => toggleGroup(key)}
+              className="animate-slide-up"
+              style={{ animationDelay: `${groupIdx * 50}ms` }}
+            >
+              <CollapsibleTrigger className="w-full">
+                <div className="flex items-center justify-between px-3 py-2.5 bg-muted/50 rounded-lg hover:bg-muted transition-colors group">
+                  <div className="flex items-center gap-2">
+                    <ChevronDown className={cn(
+                      "w-4 h-4 text-muted-foreground transition-transform",
+                      isExpanded && "rotate-180"
+                    )} />
+                    <span className="text-sm font-medium text-foreground">
+                      {getGroupLabel(key)}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      ({transactions.length})
+                    </span>
+                  </div>
+                  {dayTotal > 0 && (
+                    <span className="text-sm font-mono font-medium text-expense">
+                      −{currencySymbol}{dayTotal.toLocaleString('en-PK')}
+                    </span>
+                  )}
+                </div>
+              </CollapsibleTrigger>
+              
+              <CollapsibleContent>
+                <div className="space-y-1 pt-2">
+                  {transactions.map((transaction, idx) => (
+                    <div
+                      key={transaction.id}
+                      className="animate-fade-in"
+                      style={{ animationDelay: `${idx * 30}ms` }}
+                    >
+                      <TransactionCard
+                        transaction={transaction}
+                        currencySymbol={currencySymbol}
+                        onDelete={onDelete}
+                        onEdit={onEdit}
+                        onUpdateNecessity={onUpdateNecessity}
+                        onDuplicate={onDuplicate}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          );
+        })}
+      </div>
     </div>
   );
 }
