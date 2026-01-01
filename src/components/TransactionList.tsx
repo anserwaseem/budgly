@@ -78,13 +78,6 @@ export function TransactionList({
 
   return (
     <div className="space-y-6">
-      {/* Double-tap hint - show only once */}
-      {onDuplicate && (
-        <p className="text-xs text-muted-foreground text-center pb-2">
-          Double-tap any transaction to duplicate it for today
-        </p>
-      )}
-      
       {groupedTransactions.map(([dateKey, { transactions, dayTotal }], groupIdx) => (
         <div 
           key={dateKey} 
