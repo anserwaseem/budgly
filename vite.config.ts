@@ -16,9 +16,9 @@ export default defineConfig(({ mode }) => ({
       registerType: "prompt",
       includeAssets: ["favicon.ico"],
       manifest: {
-        name: "Budgeter - Track Every Rupee",
-        short_name: "Budgeter",
-        description: "Simple, beautiful expense tracking app",
+        name: "Budgly - Simple Expense Tracking",
+        short_name: "Budgly",
+        description: "Stupidly simple budgeting. Track expenses like taking notes.",
         theme_color: "#1a1a1a",
         background_color: "#1a1a1a",
         display: "standalone",
