@@ -12,6 +12,30 @@ import {
   getSettings,
   saveSettings,
 } from '@/lib/storage';
+import { startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, subYears } from 'date-fns';
+
+export type TimePeriod = 'thisMonth' | 'lastMonth' | 'thisYear' | 'lastYear' | 'allTime';
+
+function getDateRangeForPeriod(period: TimePeriod): { start: Date | null; end: Date | null } {
+  const now = new Date();
+  
+  switch (period) {
+    case 'thisMonth':
+      return { start: startOfMonth(now), end: endOfMonth(now) };
+    case 'lastMonth':
+      const lastMonth = subMonths(now, 1);
+      return { start: startOfMonth(lastMonth), end: endOfMonth(lastMonth) };
+    case 'thisYear':
+      return { start: startOfYear(now), end: endOfYear(now) };
+    case 'lastYear':
+      const lastYear = subYears(now, 1);
+      return { start: startOfYear(lastYear), end: endOfYear(lastYear) };
+    case 'allTime':
+      return { start: null, end: null };
+    default:
+      return { start: startOfMonth(now), end: endOfMonth(now) };
+  }
+}
 
 export function useBudgly() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -22,6 +46,8 @@ export function useBudgly() {
     currencySymbol: 'Rs.',
     geminiApiKey: '',
   });
+
+  const [timePeriod, setTimePeriod] = useState<TimePeriod>('thisMonth');
 
   // Load data on mount
   useEffect(() => {
@@ -78,28 +104,30 @@ export function useBudgly() {
     saveSettings(newSettings);
   }, []);
 
-  // Calculate stats
+  // Calculate stats based on time period
   const stats = useMemo(() => {
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const { start, end } = getDateRangeForPeriod(timePeriod);
 
-    const monthlyTransactions = transactions.filter(
-      t => new Date(t.date) >= startOfMonth
-    );
+    const filteredTransactions = transactions.filter(t => {
+      const txDate = new Date(t.date);
+      if (start && txDate < start) return false;
+      if (end && txDate > end) return false;
+      return true;
+    });
 
-    const totalExpenses = monthlyTransactions
+    const totalExpenses = filteredTransactions
       .filter(t => t.type === 'expense')
       .reduce((sum, t) => sum + t.amount, 0);
-    const totalIncome = monthlyTransactions
+    const totalIncome = filteredTransactions
       .filter(t => t.type === 'income')
       .reduce((sum, t) => sum + t.amount, 0);
-    const needsTotal = monthlyTransactions
+    const needsTotal = filteredTransactions
       .filter(t => t.type === 'expense' && t.necessity === 'need')
       .reduce((sum, t) => sum + t.amount, 0);
-    const wantsTotal = monthlyTransactions
+    const wantsTotal = filteredTransactions
       .filter(t => t.type === 'expense' && t.necessity === 'want')
       .reduce((sum, t) => sum + t.amount, 0);
-    const uncategorized = monthlyTransactions
+    const uncategorized = filteredTransactions
       .filter(t => t.type === 'expense' && t.necessity === null)
       .reduce((sum, t) => sum + t.amount, 0);
 
@@ -109,9 +137,9 @@ export function useBudgly() {
       needsTotal,
       wantsTotal,
       uncategorized,
-      transactionCount: monthlyTransactions.length,
+      transactionCount: filteredTransactions.length,
     };
-  }, [transactions]);
+  }, [transactions, timePeriod]);
 
   // Group transactions by date with daily totals
   const groupedTransactions = useMemo(() => {
@@ -127,8 +155,7 @@ export function useBudgly() {
       }
     });
     return Object.entries(groups)
-      .sort(([a], [b]) => new Date(b).getTime() - new Date(a).getTime())
-      .slice(0, 10);
+      .sort(([a], [b]) => new Date(b).getTime() - new Date(a).getTime());
   }, [transactions]);
 
   // Quick add suggestions based on recent frequent transactions
@@ -166,9 +193,11 @@ export function useBudgly() {
     theme,
     settings,
     stats,
+    timePeriod,
     groupedTransactions,
     quickAddSuggestions,
     toggleTheme,
+    setTimePeriod,
     addTransaction: handleAddTransaction,
     deleteTransaction: handleDeleteTransaction,
     updateNecessity: handleUpdateNecessity,
