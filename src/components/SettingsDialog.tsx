@@ -272,7 +272,7 @@ export function SettingsDialog({
           {activeTab === 'payments' && (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Add your payment methods. Use the shorthand when entering transactions (e.g., "chai JC 50" for JazzCash).
+                Add your payment methods. Use the shorthand when entering transactions (e.g., "tea JC 50" for JazzCash).
               </p>
 
               {/* Add new mode */}
