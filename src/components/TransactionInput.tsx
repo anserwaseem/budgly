@@ -233,35 +233,7 @@ export function TransactionInput({
         </div>
       )}
 
-      {/* Type Toggle */}
-      <div className="flex rounded-xl bg-muted p-1">
-        <button
-          onClick={() => setIsIncome(false)}
-          className={cn(
-            "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all",
-            !isIncome 
-              ? "bg-expense/20 text-expense shadow-sm" 
-              : "text-muted-foreground hover:text-foreground"
-          )}
-        >
-          <Minus className="w-4 h-4" />
-          Expense
-        </button>
-        <button
-          onClick={() => setIsIncome(true)}
-          className={cn(
-            "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all",
-            isIncome 
-              ? "bg-income/20 text-income shadow-sm" 
-              : "text-muted-foreground hover:text-foreground"
-          )}
-        >
-          <Plus className="w-4 h-4" />
-          Income
-        </button>
-      </div>
-
-      {/* Date Selector with Swipe */}
+      {/* Date Selector & Type Toggle Row */}
       <div className="flex items-center gap-2">
         <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
           <PopoverTrigger asChild>
@@ -290,8 +262,36 @@ export function TransactionInput({
             />
           </PopoverContent>
         </Popover>
+
+        {/* Compact Type Toggle */}
+        <div className="flex rounded-full bg-muted p-0.5">
+          <button
+            onClick={() => setIsIncome(false)}
+            className={cn(
+              "flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-all",
+              !isIncome 
+                ? "bg-expense/20 text-expense" 
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Minus className="w-3 h-3" />
+            Exp
+          </button>
+          <button
+            onClick={() => setIsIncome(true)}
+            className={cn(
+              "flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-all",
+              isIncome 
+                ? "bg-income/20 text-income" 
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Plus className="w-3 h-3" />
+            Inc
+          </button>
+        </div>
         
-        <span className="text-xs text-muted-foreground">swipe to change date →</span>
+        <span className="text-xs text-muted-foreground ml-auto">swipe date →</span>
       </div>
 
       {/* Main Input with Auto-Complete */}
