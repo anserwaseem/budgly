@@ -1,11 +1,19 @@
 import { Transaction, NecessityType } from '@/lib/types';
 import { TransactionCard } from './TransactionCard';
 import { getRelativeDate } from '@/lib/parser';
-import { Receipt, Sparkles, TrendingUp, Zap, ChevronDown } from 'lucide-react';
+import { Receipt, Sparkles, TrendingUp, Zap, ChevronDown, Search, X } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface TransactionListProps {
   groupedTransactions: [string, { transactions: Transaction[], dayTotal: number }][];
@@ -36,6 +44,9 @@ export function TransactionList({
   const [tipIndex, setTipIndex] = useState(0);
   const [groupMode, setGroupMode] = useState<GroupMode>('day');
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState('');
+  const [typeFilter, setTypeFilter] = useState<'all' | 'expense' | 'income'>('all');
+  const [necessityFilter, setNecessityFilter] = useState<'all' | 'need' | 'want' | 'uncategorized'>('all');
 
   // Rotate tips every 4 seconds
   useEffect(() => {
@@ -48,18 +59,51 @@ export function TransactionList({
     return () => clearInterval(interval);
   }, [groupedTransactions.length]);
 
+  // Filter transactions first
+  const filteredGroupedTransactions = useMemo(() => {
+    return groupedTransactions.map(([date, { transactions, dayTotal }]) => {
+      const filtered = transactions.filter(t => {
+        // Search filter
+        if (searchQuery) {
+          const query = searchQuery.toLowerCase();
+          const matchesReason = t.reason.toLowerCase().includes(query);
+          const matchesPaymentMode = t.paymentMode.toLowerCase().includes(query);
+          if (!matchesReason && !matchesPaymentMode) return false;
+        }
+        
+        // Type filter
+        if (typeFilter !== 'all' && t.type !== typeFilter) return false;
+        
+        // Necessity filter (only for expenses)
+        if (necessityFilter !== 'all') {
+          if (t.type !== 'expense') return false;
+          if (necessityFilter === 'uncategorized' && t.necessity !== null) return false;
+          if (necessityFilter !== 'uncategorized' && t.necessity !== necessityFilter) return false;
+        }
+        
+        return true;
+      });
+      
+      const filteredTotal = filtered
+        .filter(t => t.type === 'expense')
+        .reduce((sum, t) => sum + t.amount, 0);
+      
+      return [date, { transactions: filtered, dayTotal: filteredTotal }] as [string, { transactions: Transaction[], dayTotal: number }];
+    }).filter(([, { transactions }]) => transactions.length > 0);
+  }, [groupedTransactions, searchQuery, typeFilter, necessityFilter]);
+
   // Regroup transactions based on mode
   const regroupedTransactions = useMemo(() => {
     if (groupMode === 'day') {
       // Default day grouping - expand most recent by default
-      if (expandedGroups.size === 0 && groupedTransactions.length > 0) {
-        setExpandedGroups(new Set([groupedTransactions[0][0]]));
+      if (expandedGroups.size === 0 && filteredGroupedTransactions.length > 0) {
+        setExpandedGroups(new Set([filteredGroupedTransactions[0][0]]));
       }
-      return groupedTransactions;
+      return filteredGroupedTransactions;
     }
 
     // Flatten all transactions
-    const allTransactions = groupedTransactions.flatMap(([, { transactions }]) => transactions);
+    const allTransactions = filteredGroupedTransactions.flatMap(([, { transactions }]) => transactions);
     
     // Group by month or year
     const grouped: Record<string, { transactions: Transaction[], dayTotal: number }> = {};
@@ -87,7 +131,7 @@ export function TransactionList({
     }
     
     return result;
-  }, [groupedTransactions, groupMode]);
+  }, [filteredGroupedTransactions, groupMode]);
 
   const toggleGroup = (key: string) => {
     setExpandedGroups(prev => {
@@ -147,27 +191,93 @@ export function TransactionList({
     );
   }
 
+  const hasActiveFilters = searchQuery || typeFilter !== 'all' || necessityFilter !== 'all';
+
   return (
     <div className="space-y-4">
-      {/* Group Mode Toggle */}
-      <div className="flex gap-1 p-1 bg-muted rounded-lg w-fit">
-        {(['day', 'month', 'year'] as GroupMode[]).map(mode => (
-          <button
-            key={mode}
-            onClick={() => {
-              setGroupMode(mode);
-              setExpandedGroups(new Set());
-            }}
-            className={cn(
-              "px-3 py-1 rounded-md text-xs font-medium transition-all capitalize",
-              groupMode === mode 
-                ? "bg-background text-foreground shadow-sm" 
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            {mode}
-          </button>
-        ))}
+      {/* Search, Filter, and Group Mode */}
+      <div className="space-y-2">
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Search transactions..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9 pr-9 h-9 text-sm"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+        
+        {/* Filters Row */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Group Mode Toggle */}
+          <div className="flex gap-0.5 p-0.5 bg-muted rounded-md">
+            {(['day', 'month', 'year'] as GroupMode[]).map(mode => (
+              <button
+                key={mode}
+                onClick={() => {
+                  setGroupMode(mode);
+                  setExpandedGroups(new Set());
+                }}
+                className={cn(
+                  "px-2 py-1 rounded text-xs font-medium transition-all capitalize",
+                  groupMode === mode 
+                    ? "bg-background text-foreground shadow-sm" 
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {mode}
+              </button>
+            ))}
+          </div>
+
+          {/* Type Filter */}
+          <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as typeof typeFilter)}>
+            <SelectTrigger className="w-[100px] h-8 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Types</SelectItem>
+              <SelectItem value="expense">Expenses</SelectItem>
+              <SelectItem value="income">Income</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Necessity Filter */}
+          <Select value={necessityFilter} onValueChange={(v) => setNecessityFilter(v as typeof necessityFilter)}>
+            <SelectTrigger className="w-[120px] h-8 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              <SelectItem value="need">Needs</SelectItem>
+              <SelectItem value="want">Wants</SelectItem>
+              <SelectItem value="uncategorized">Uncategorized</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Clear Filters */}
+          {hasActiveFilters && (
+            <button
+              onClick={() => {
+                setSearchQuery('');
+                setTypeFilter('all');
+                setNecessityFilter('all');
+              }}
+              className="text-xs text-muted-foreground hover:text-foreground underline"
+            >
+              Clear
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Transaction Groups */}
@@ -220,6 +330,7 @@ export function TransactionList({
                         onEdit={onEdit}
                         onUpdateNecessity={onUpdateNecessity}
                         onDuplicate={onDuplicate}
+                        showDate={groupMode !== 'day'}
                       />
                     </div>
                   ))}
