@@ -12,7 +12,7 @@ interface SettingsDialogProps {
   transactions: Transaction[];
   onSaveSettings: (settings: AppSettings) => void;
   onSavePaymentModes: (modes: PaymentMode[]) => void;
-  onImportTransactions: (transactions: Omit<Transaction, 'id'>[]) => void;
+  onImportTransactions: (transactions: Omit<Transaction, 'id'>[], newModes?: PaymentMode[]) => void;
   onClose: () => void;
 }
 
@@ -126,21 +126,27 @@ export function SettingsDialog({
     const reader = new FileReader();
     reader.onload = (event) => {
       const content = event.target?.result as string;
-      const { transactions: parsed, errors } = parseCSVToTransactions(content);
+      const { transactions: parsed, errors, newPaymentModes } = parseCSVToTransactions(content, localModes);
 
       if (errors.length > 0) {
         toast({
           title: "Import Errors",
-          description: `${errors.length} rows had errors. ${parsed.length} imported successfully.`,
-          variant: errors.length === parsed.length + errors.length ? "destructive" : "default",
+          description: errors.slice(0, 3).join('\n') + (errors.length > 3 ? `\n...and ${errors.length - 3} more` : ''),
+          variant: parsed.length === 0 ? "destructive" : "default",
         });
       }
 
       if (parsed.length > 0) {
-        onImportTransactions(parsed);
+        // Add new payment modes to local state
+        if (newPaymentModes.length > 0) {
+          setLocalModes([...localModes, ...newPaymentModes]);
+        }
+        
+        onImportTransactions(parsed, newPaymentModes);
         toast({
           title: "Import Successful",
-          description: `${parsed.length} transactions imported.`,
+          description: `${parsed.length} transactions imported.` + 
+            (newPaymentModes.length > 0 ? ` ${newPaymentModes.length} new payment mode(s) added.` : ''),
         });
       }
     };
@@ -294,7 +300,7 @@ export function SettingsDialog({
           )}
 
           {activeTab === 'data' && (
-            <div className="space-y-6">
+            <div className="space-y-4">
               {/* Hidden file input */}
               <input
                 ref={fileInputRef}
@@ -325,7 +331,7 @@ export function SettingsDialog({
               </div>
 
               {/* Import Section */}
-              <div className="border-t border-border pt-6">
+              <div className="border-t border-border pt-4">
                 <h3 className="text-sm font-medium mb-3">Import Data</h3>
                 
                 <div className="space-y-3">
@@ -350,10 +356,10 @@ export function SettingsDialog({
 
                 <div className="bg-muted/50 rounded-lg p-3 mt-3">
                   <p className="text-xs text-muted-foreground">
-                    <strong>Steps:</strong> Download the template → Fill in your data → Import the file.
+                    <strong>Format:</strong> DD/MM/YYYY, reason, amount, paymentMode, type, necessity
                     <br />
                     <span className="text-muted-foreground/80">
-                      Format: date, reason, amount, paymentMode, type (expense/income/savings), necessity (need/want or empty)
+                      Unknown payment modes are auto-added. Necessity is ignored for income.
                     </span>
                   </p>
                 </div>
