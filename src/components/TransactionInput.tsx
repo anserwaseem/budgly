@@ -228,14 +228,6 @@ export function TransactionInput({
 
   return (
     <div className="space-y-4">
-      {/* Today Counter */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-foreground">Add Transaction</h2>
-        <span className="text-sm text-muted-foreground bg-muted px-3 py-1 rounded-full">
-          Today: {todayCount} transaction{todayCount !== 1 ? 's' : ''}
-        </span>
-      </div>
-
       {/* Quick Add Pills */}
       {quickAddSuggestions.length > 0 && (
         <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
@@ -252,22 +244,6 @@ export function TransactionInput({
           ))}
         </div>
       )}
-
-      {/* Amount Presets */}
-      <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
-        <span className="shrink-0 text-xs text-muted-foreground self-center mr-1">Quick:</span>
-        {amountPresets.map((amount) => (
-          <button
-            key={amount}
-            onClick={() => handleAmountPreset(amount)}
-            className="shrink-0 px-2.5 py-1 rounded-md bg-secondary text-xs font-mono font-medium 
-                       text-secondary-foreground hover:bg-secondary/80 transition-colors
-                       active:scale-95"
-          >
-            {currencySymbol}{amount.toLocaleString('en-PK')}
-          </button>
-        ))}
-      </div>
 
       {/* Type Toggle */}
       <div className="flex rounded-xl bg-muted p-1">
@@ -418,12 +394,6 @@ export function TransactionInput({
         </button>
       </div>
 
-      {/* Repeat Last Hint */}
-      {lastTransaction && (
-        <p className="text-xs text-muted-foreground text-center">
-          Hold <span className="inline-flex items-center"><Check className="w-3 h-3 mx-0.5" /></span> to repeat: {lastTransaction.reason} {currencySymbol}{lastTransaction.amount.toLocaleString('en-PK')}
-        </p>
-      )}
 
       {/* Live Preview */}
       {input.length > 0 && (

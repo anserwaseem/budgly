@@ -117,26 +117,6 @@ export function TransactionCard({
           </p>
         </div>
 
-        {/* Duplicate */}
-        {onDuplicate && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              haptic('light');
-              onDuplicate(transaction);
-              toast({
-                title: "Duplicated!",
-                description: `${currencySymbol}${transaction.amount.toLocaleString('en-PK')} for ${transaction.reason}`,
-              });
-            }}
-            className="opacity-0 group-hover:opacity-100 p-1.5 rounded-md text-muted-foreground 
-                       hover:text-primary hover:bg-primary/10 transition-all"
-            title="Duplicate for today"
-          >
-            <Copy className="w-4 h-4" />
-          </button>
-        )}
-
         {/* Edit */}
         <button
           onClick={(e) => {
