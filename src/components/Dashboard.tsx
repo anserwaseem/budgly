@@ -2,16 +2,35 @@ import { useMemo } from 'react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, LineChart, Line, AreaChart, Area } from 'recharts';
 import { Transaction } from '@/lib/types';
 import { formatAmount } from '@/lib/parser';
-import { TrendingUp, TrendingDown, Wallet, Target, Calendar, CreditCard, PiggyBank, ArrowUpRight, ArrowDownRight, Flame, Award, Repeat, DollarSign, CalendarCheck } from 'lucide-react';
+import { TrendingUp, TrendingDown, Wallet, Target, Calendar, CreditCard, PiggyBank, ArrowUpRight, ArrowDownRight, Flame, Award, Repeat, DollarSign, CalendarCheck, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+
+type TimePeriod = 'thisMonth' | 'lastMonth' | 'thisYear' | 'lastYear' | 'allTime';
+
+const TIME_PERIOD_LABELS: Record<TimePeriod, string> = {
+  thisMonth: 'This Month',
+  lastMonth: 'Last Month',
+  thisYear: 'This Year',
+  lastYear: 'Last Year',
+  allTime: 'All Time',
+};
 
 interface DashboardProps {
   transactions: Transaction[];
   currencySymbol: string;
+  timePeriod?: TimePeriod;
+  onTimePeriodChange?: (period: TimePeriod) => void;
 }
 
-export function Dashboard({ transactions, currencySymbol }: DashboardProps) {
+export function Dashboard({ transactions, currencySymbol, timePeriod = 'thisMonth', onTimePeriodChange }: DashboardProps) {
   const analytics = useMemo(() => {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -248,6 +267,29 @@ export function Dashboard({ transactions, currencySymbol }: DashboardProps) {
 
   return (
     <div className="space-y-4 animate-fade-in">
+      {/* Time Period Dropdown */}
+      <div className="text-center">
+        {onTimePeriodChange ? (
+          <Select value={timePeriod} onValueChange={(v) => onTimePeriodChange(v as TimePeriod)}>
+            <SelectTrigger className="w-auto mx-auto h-8 px-3 text-sm font-medium border-0 bg-muted/50 hover:bg-muted focus:ring-0">
+              <SelectValue />
+              <ChevronDown className="w-4 h-4 ml-1 opacity-50" />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(TIME_PERIOD_LABELS).map(([value, label]) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : (
+          <p className="text-sm font-medium text-muted-foreground">
+            {TIME_PERIOD_LABELS[timePeriod]}
+          </p>
+        )}
+      </div>
+
       {/* Quick Stats Row */}
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-card border border-border rounded-xl p-4">
