@@ -145,7 +145,12 @@ const Index = () => {
             </section>
           </>
         ) : (
-          <Dashboard transactions={transactions} currencySymbol={settings.currencySymbol} />
+          <Dashboard 
+            transactions={transactions} 
+            currencySymbol={settings.currencySymbol} 
+            timePeriod={timePeriod}
+            onTimePeriodChange={setTimePeriod}
+          />
         )}
       </div>
 
