@@ -16,7 +16,6 @@ const DEFAULT_MODES: PaymentMode[] = [
 const DEFAULT_SETTINGS: AppSettings = {
   currency: 'PKR',
   currencySymbol: 'Rs.',
-  geminiApiKey: '',
 };
 
 export function getTransactions(): Transaction[] {

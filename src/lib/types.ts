@@ -27,12 +27,4 @@ export interface ParsedInput {
 export interface AppSettings {
   currency: string;
   currencySymbol: string;
-  geminiApiKey: string;
-}
-
-export interface ChatMessage {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: string;
 }
