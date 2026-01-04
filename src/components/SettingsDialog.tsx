@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { X, Plus, Trash2, Eye, EyeOff, RefreshCw, Download, Upload, FileText, Pencil, Check } from 'lucide-react';
+import { X, Plus, Trash2, RefreshCw, Download, Upload, FileText, Pencil, Check } from 'lucide-react';
 import { AppSettings, PaymentMode, Transaction } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { safeUpdate } from '@/lib/pwa';
@@ -43,8 +43,7 @@ export function SettingsDialog({
   const [editingModeId, setEditingModeId] = useState<string | null>(null);
   const [editModeName, setEditModeName] = useState('');
   const [editModeShort, setEditModeShort] = useState('');
-  const [showApiKey, setShowApiKey] = useState(false);
-  const [activeTab, setActiveTab] = useState<'general' | 'payments' | 'data' | 'ai'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'payments' | 'data'>('general');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -209,7 +208,7 @@ export function SettingsDialog({
 
         {/* Tabs */}
         <div className="flex gap-1 p-2 border-b border-border shrink-0">
-          {(['general', 'payments', 'data', 'ai'] as const).map((tab) => (
+          {(['general', 'payments', 'data'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -220,7 +219,7 @@ export function SettingsDialog({
                   : "text-muted-foreground hover:text-foreground hover:bg-muted"
               )}
             >
-              {tab === 'ai' ? 'AI' : tab}
+              {tab}
             </button>
           ))}
         </div>
@@ -454,51 +453,6 @@ export function SettingsDialog({
             </div>
           )}
 
-          {activeTab === 'ai' && (
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Enable AI-powered insights for your spending. Get personalized analysis and advice in any language.
-              </p>
-
-              <div>
-                <label className="text-sm text-muted-foreground mb-2 block">Gemini API Key</label>
-                <div className="relative">
-                  <input
-                    type={showApiKey ? 'text' : 'password'}
-                    value={localSettings.geminiApiKey}
-                    onChange={(e) =>
-                      setLocalSettings({ ...localSettings, geminiApiKey: e.target.value })
-                    }
-                    placeholder="Enter your Gemini API key"
-                    className="w-full bg-input border border-border rounded-lg px-3 py-2.5 pr-10
-                               focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-                  />
-                  <button
-                    onClick={() => setShowApiKey(!showApiKey)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-muted-foreground 
-                               hover:text-foreground transition-colors"
-                  >
-                    {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              <div className="bg-muted/50 rounded-lg p-3">
-                <p className="text-xs text-muted-foreground">
-                  Get your free API key from{' '}
-                  <a
-                    href="https://aistudio.google.com/app/apikey"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary hover:underline"
-                  >
-                    Google AI Studio
-                  </a>
-                  . Your key is stored locally and never shared.
-                </p>
-              </div>
-            </div>
-          )}
         </div>
 
         <div className="flex gap-2 p-4 border-t border-border shrink-0">

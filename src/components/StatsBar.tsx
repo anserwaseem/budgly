@@ -1,6 +1,7 @@
+import { useState } from 'react';
 import { formatAmount } from '@/lib/parser';
 import { cn } from '@/lib/utils';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -8,6 +9,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 
 type TimePeriod = 'thisMonth' | 'lastMonth' | 'thisYear' | 'lastYear' | 'allTime';
 
@@ -39,6 +45,8 @@ export function StatsBar({
   timePeriod = 'thisMonth',
   onTimePeriodChange 
 }: StatsBarProps) {
+  const [isExpanded, setIsExpanded] = useState(true);
+  
   const needsPercent = stats.totalExpenses > 0 
     ? (stats.needsTotal / stats.totalExpenses) * 100 
     : 0;
@@ -49,7 +57,14 @@ export function StatsBar({
   const balance = stats.totalIncome - stats.totalExpenses;
 
   return (
-    <div className="space-y-4">
+    <Collapsible open={isExpanded} onOpenChange={setIsExpanded} className="space-y-4">
+      {/* Toggle Button */}
+      <CollapsibleTrigger className="w-full flex justify-center">
+        <button className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+          {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+        </button>
+      </CollapsibleTrigger>
+
       {/* Balance */}
       <div className="text-center">
         {/* Time Period Dropdown */}
@@ -87,46 +102,48 @@ export function StatsBar({
         </p>
       </div>
 
-      {/* Progress Bar */}
-      {stats.totalExpenses > 0 && (
-        <div className="space-y-2">
-          <div className="h-3 bg-muted rounded-full overflow-hidden flex">
-            <div 
-              className="h-full bg-need transition-all duration-500"
-              style={{ width: `${needsPercent}%` }}
-            />
-            <div 
-              className="h-full bg-want transition-all duration-500"
-              style={{ width: `${wantsPercent}%` }}
-            />
-          </div>
-
-          {/* Legend */}
-          <div className="flex justify-between text-xs">
-            <div className="flex items-center gap-4">
-              <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-need" />
-                <span className="text-muted-foreground">Needs</span>
-                <span className={cn("font-mono font-medium", stats.needsTotal > 0 && "text-need")}>
-                  {currencySymbol}{formatAmount(stats.needsTotal)}
-                </span>
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-want" />
-                <span className="text-muted-foreground">Wants</span>
-                <span className={cn("font-mono font-medium", stats.wantsTotal > 0 && "text-want")}>
-                  {currencySymbol}{formatAmount(stats.wantsTotal)}
-                </span>
-              </span>
+      {/* Progress Bar - Collapsible */}
+      <CollapsibleContent>
+        {stats.totalExpenses > 0 && (
+          <div className="space-y-2">
+            <div className="h-3 bg-muted rounded-full overflow-hidden flex">
+              <div 
+                className="h-full bg-need transition-all duration-500"
+                style={{ width: `${needsPercent}%` }}
+              />
+              <div 
+                className="h-full bg-want transition-all duration-500"
+                style={{ width: `${wantsPercent}%` }}
+              />
             </div>
-            {stats.uncategorized > 0 && (
-              <span className="text-muted-foreground">
-                {currencySymbol}{formatAmount(stats.uncategorized)} uncategorized
-              </span>
-            )}
+
+            {/* Legend */}
+            <div className="flex justify-between text-xs">
+              <div className="flex items-center gap-4">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-need" />
+                  <span className="text-muted-foreground">Needs</span>
+                  <span className={cn("font-mono font-medium", stats.needsTotal > 0 && "text-need")}>
+                    {currencySymbol}{formatAmount(stats.needsTotal)}
+                  </span>
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-want" />
+                  <span className="text-muted-foreground">Wants</span>
+                  <span className={cn("font-mono font-medium", stats.wantsTotal > 0 && "text-want")}>
+                    {currencySymbol}{formatAmount(stats.wantsTotal)}
+                  </span>
+                </span>
+              </div>
+              {stats.uncategorized > 0 && (
+                <span className="text-muted-foreground">
+                  {currencySymbol}{formatAmount(stats.uncategorized)} uncategorized
+                </span>
+              )}
+            </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </CollapsibleContent>
+    </Collapsible>
   );
 }

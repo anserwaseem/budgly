@@ -7,9 +7,8 @@ import { TransactionList } from '@/components/TransactionList';
 import { Dashboard } from '@/components/Dashboard';
 import { SettingsDialog } from '@/components/SettingsDialog';
 import { EditTransactionDialog } from '@/components/EditTransactionDialog';
-import { AIChatDialog } from '@/components/AIChatDialog';
-import { Transaction, PaymentMode } from '@/lib/types';
-import { BarChart3, List, Sparkles } from 'lucide-react';
+import { PaymentMode } from '@/lib/types';
+import { BarChart3, List } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 
@@ -35,8 +34,7 @@ const Index = () => {
 
   const [activeTab, setActiveTab] = useState<'transactions' | 'dashboard'>('transactions');
   const [showSettings, setShowSettings] = useState(false);
-  const [showAIChat, setShowAIChat] = useState(false);
-  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [editingTransaction, setEditingTransaction] = useState<typeof transactions[0] | null>(null);
 
   // Today's transaction count
   const todayCount = useMemo(() => {
@@ -154,15 +152,6 @@ const Index = () => {
         )}
       </div>
 
-      {/* AI Chat FAB */}
-      <button
-        onClick={() => setShowAIChat(true)}
-        className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-primary text-primary-foreground 
-                   shadow-lg hover:opacity-90 active:scale-95 transition-all flex items-center justify-center"
-      >
-        <Sparkles className="w-6 h-6" />
-      </button>
-
       {/* Dialogs */}
       {showSettings && (
         <SettingsDialog
@@ -189,15 +178,6 @@ const Index = () => {
           currencySymbol={settings.currencySymbol}
           onSave={updateTransaction}
           onClose={() => setEditingTransaction(null)}
-        />
-      )}
-
-      {showAIChat && (
-        <AIChatDialog
-          apiKey={settings.geminiApiKey}
-          transactions={transactions}
-          currencySymbol={settings.currencySymbol}
-          onClose={() => setShowAIChat(false)}
         />
       )}
     </div>

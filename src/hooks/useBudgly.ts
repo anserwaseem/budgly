@@ -44,7 +44,6 @@ export function useBudgly() {
   const [settings, setSettings] = useState<AppSettings>({
     currency: 'PKR',
     currencySymbol: 'Rs.',
-    geminiApiKey: '',
   });
 
   const [timePeriod, setTimePeriod] = useState<TimePeriod>('thisMonth');
