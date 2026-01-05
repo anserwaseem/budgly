@@ -314,7 +314,7 @@ export function SettingsDialog({
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
                 Add your payment methods. Use the shorthand when entering
-                transactions (e.g., "tea JC 50" for JazzCash).
+                transactions (e.g., "tea CC 50" for Credit Card).
               </p>
 
               {/* Add new mode */}
@@ -323,7 +323,7 @@ export function SettingsDialog({
                   type="text"
                   value={newModeName}
                   onChange={(e) => setNewModeName(e.target.value)}
-                  placeholder="Name (e.g., JazzCash)"
+                  placeholder="Name (e.g., Credit Card)"
                   className="flex-1 bg-input border border-border rounded-lg px-3 py-2 text-sm
                              focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                 />

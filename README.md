@@ -105,7 +105,7 @@ The natural language parser accepts flexible input:
 **Examples:**
 - `Coffee CC 150` - Coffee paid by Credit Card, Rs.150
 - `Lunch Cash 500` - Lunch paid by Cash, Rs.500
-- `Uber EP 350` - Uber paid by EasyPaisa, Rs.350
+- `Uber D 350` - Uber paid by Debit Card, Rs.350
 
 **Default payment modes:**
 | Shorthand | Full Name |
@@ -113,8 +113,6 @@ The natural language parser accepts flexible input:
 | C | Cash |
 | CC | Credit Card |
 | D | Debit |
-| JC | JazzCash |
-| EP | EasyPaisa |
 
 You can add custom payment modes in Settings.
 

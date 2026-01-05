@@ -9,8 +9,6 @@ const DEFAULT_MODES: PaymentMode[] = [
   { id: "1", name: "Debit Card", shorthand: "D" },
   { id: "2", name: "Cash", shorthand: "C" },
   { id: "3", name: "Credit Card", shorthand: "CC" },
-  { id: "4", name: "JazzCash", shorthand: "JC" },
-  { id: "5", name: "EasyPaisa", shorthand: "EP" },
 ];
 
 const DEFAULT_SETTINGS: AppSettings = {
