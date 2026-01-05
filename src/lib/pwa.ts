@@ -3,7 +3,9 @@
 
 let swRegistration: ServiceWorkerRegistration | null = null;
 
-export function setServiceWorkerRegistration(registration: ServiceWorkerRegistration) {
+export function setServiceWorkerRegistration(
+  registration: ServiceWorkerRegistration
+) {
   swRegistration = registration;
 }
 
@@ -13,7 +15,7 @@ export function getServiceWorkerRegistration(): ServiceWorkerRegistration | null
 
 export async function checkForUpdates(): Promise<boolean> {
   if (!swRegistration) {
-    if ('serviceWorker' in navigator) {
+    if ("serviceWorker" in navigator) {
       try {
         swRegistration = await navigator.serviceWorker.getRegistration();
       } catch {
@@ -35,7 +37,7 @@ export async function checkForUpdates(): Promise<boolean> {
 
 export function applyUpdate(): void {
   if (swRegistration?.waiting) {
-    swRegistration.waiting.postMessage({ type: 'SKIP_WAITING' });
+    swRegistration.waiting.postMessage({ type: "SKIP_WAITING" });
     window.location.reload();
   } else {
     window.location.reload();
@@ -49,9 +51,9 @@ export function applyUpdate(): void {
 export async function safeUpdate(): Promise<void> {
   // Set up controller change listener BEFORE triggering update
   let reloadScheduled = false;
-  
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
+
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
       // Only reload once after we've triggered the update
       if (reloadScheduled) {
         window.location.reload();
@@ -62,7 +64,7 @@ export async function safeUpdate(): Promise<void> {
   // If there's already a waiting worker, activate it
   if (swRegistration?.waiting) {
     reloadScheduled = true;
-    swRegistration.waiting.postMessage({ type: 'SKIP_WAITING' });
+    swRegistration.waiting.postMessage({ type: "SKIP_WAITING" });
     // Fallback reload after 1 second if controllerchange doesn't fire
     setTimeout(() => window.location.reload(), 1000);
     return;
@@ -75,7 +77,7 @@ export async function safeUpdate(): Promise<void> {
       // Check if we now have a waiting worker
       if (swRegistration.waiting) {
         reloadScheduled = true;
-        swRegistration.waiting.postMessage({ type: 'SKIP_WAITING' });
+        swRegistration.waiting.postMessage({ type: "SKIP_WAITING" });
         setTimeout(() => window.location.reload(), 1000);
         return;
       }
@@ -86,7 +88,8 @@ export async function safeUpdate(): Promise<void> {
 
   // No waiting worker available, do a cache-busting hard refresh
   // This bypasses the browser cache without destroying localStorage
-  window.location.href = window.location.href.split('?')[0] + '?refresh=' + Date.now();
+  window.location.href =
+    window.location.href.split("?")[0] + "?refresh=" + Date.now();
 }
 
 /**
@@ -95,14 +98,14 @@ export async function safeUpdate(): Promise<void> {
  * WARNING: May cause issues on iOS PWAs.
  */
 export async function hardReset(): Promise<void> {
-  if ('caches' in window) {
+  if ("caches" in window) {
     const cacheNames = await caches.keys();
-    await Promise.all(cacheNames.map(name => caches.delete(name)));
+    await Promise.all(cacheNames.map((name) => caches.delete(name)));
   }
 
-  if ('serviceWorker' in navigator) {
+  if ("serviceWorker" in navigator) {
     const registrations = await navigator.serviceWorker.getRegistrations();
-    await Promise.all(registrations.map(reg => reg.unregister()));
+    await Promise.all(registrations.map((reg) => reg.unregister()));
   }
 
   window.location.reload();

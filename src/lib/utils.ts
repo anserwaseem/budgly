@@ -6,9 +6,11 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 // Haptic feedback utility for mobile devices
-export function haptic(type: 'light' | 'medium' | 'heavy' | 'success' | 'warning' | 'error' = 'light') {
+export function haptic(
+  type: "light" | "medium" | "heavy" | "success" | "warning" | "error" = "light"
+) {
   if (!navigator.vibrate) return;
-  
+
   const patterns: Record<string, number | number[]> = {
     light: 10,
     medium: 20,
@@ -17,6 +19,6 @@ export function haptic(type: 'light' | 'medium' | 'heavy' | 'success' | 'warning
     warning: [20, 30, 20],
     error: [30, 50, 30, 50, 30],
   };
-  
+
   navigator.vibrate(patterns[type]);
 }

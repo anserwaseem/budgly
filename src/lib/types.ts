@@ -1,5 +1,5 @@
-export type TransactionType = 'expense' | 'income' | 'savings';
-export type NecessityType = 'need' | 'want' | null;
+export type TransactionType = "expense" | "income" | "savings";
+export type NecessityType = "need" | "want" | null;
 
 export interface Transaction {
   id: string;

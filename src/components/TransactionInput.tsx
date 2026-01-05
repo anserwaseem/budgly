@@ -1,16 +1,28 @@
-import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
-import { Plus, Check, Minus, CalendarIcon, Mic, MicOff, Sparkles } from 'lucide-react';
-import { format, subDays } from 'date-fns';
-import { parseInput } from '@/lib/parser';
-import { PaymentMode, Transaction, NecessityType } from '@/lib/types';
-import { cn, haptic } from '@/lib/utils';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
-import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
-import { useAutoComplete } from '@/hooks/useAutoComplete';
-import { useAmountPresets } from '@/hooks/useAmountPresets';
-import { useLearnedNecessity } from '@/hooks/useLearnedNecessity';
-import { toast } from '@/hooks/use-toast';
+import { useState, useCallback, useMemo, useRef, useEffect } from "react";
+import {
+  Plus,
+  Check,
+  Minus,
+  CalendarIcon,
+  Mic,
+  MicOff,
+  Sparkles,
+} from "lucide-react";
+import { format, subDays } from "date-fns";
+import { parseInput } from "@/lib/parser";
+import { PaymentMode, Transaction, NecessityType } from "@/lib/types";
+import { cn, haptic } from "@/lib/utils";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
+import { useAutoComplete } from "@/hooks/useAutoComplete";
+import { useAmountPresets } from "@/hooks/useAmountPresets";
+import { useLearnedNecessity } from "@/hooks/useLearnedNecessity";
+import { toast } from "@/hooks/use-toast";
 
 interface TransactionInputProps {
   paymentModes: PaymentMode[];
@@ -18,14 +30,14 @@ interface TransactionInputProps {
   quickAddSuggestions: Transaction[];
   transactions: Transaction[];
   todayCount: number;
-  onAdd: (transaction: Omit<Transaction, 'id'>) => void;
+  onAdd: (transaction: Omit<Transaction, "id">) => void;
   onRepeatLast?: () => void;
   lastTransaction?: Transaction | null;
 }
 
-export function TransactionInput({ 
-  paymentModes, 
-  currencySymbol, 
+export function TransactionInput({
+  paymentModes,
+  currencySymbol,
   quickAddSuggestions,
   transactions,
   todayCount,
@@ -33,9 +45,10 @@ export function TransactionInput({
   onRepeatLast,
   lastTransaction,
 }: TransactionInputProps) {
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState("");
   const [isIncome, setIsIncome] = useState(false);
-  const [selectedNecessity, setSelectedNecessity] = useState<NecessityType>(null);
+  const [selectedNecessity, setSelectedNecessity] =
+    useState<NecessityType>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [showAutoComplete, setShowAutoComplete] = useState(false);
@@ -56,7 +69,10 @@ export function TransactionInput({
     onError: (error) => {
       toast({
         title: "Voice input failed",
-        description: error === 'not-allowed' ? 'Please enable microphone access' : 'Try again',
+        description:
+          error === "not-allowed"
+            ? "Please enable microphone access"
+            : "Try again",
         variant: "destructive",
       });
     },
@@ -64,17 +80,20 @@ export function TransactionInput({
 
   // Auto-complete suggestions
   const autoCompleteSuggestions = useAutoComplete(transactions, input);
-  
+
   // Amount presets
   const amountPresets = useAmountPresets(transactions);
-  
+
   // Learned necessity
-  const { getSuggestedNecessity, recordNecessity, isLearned } = useLearnedNecessity(transactions);
+  const { getSuggestedNecessity, recordNecessity, isLearned } =
+    useLearnedNecessity(transactions);
 
   const handleQuickAdd = (suggestion: Transaction) => {
-    haptic('light');
-    setInput(`${suggestion.reason} ${suggestion.paymentMode} ${suggestion.amount}`);
-    
+    haptic("light");
+    setInput(
+      `${suggestion.reason} ${suggestion.paymentMode} ${suggestion.amount}`
+    );
+
     // Auto-apply learned necessity
     const suggested = getSuggestedNecessity(suggestion.reason);
     setSelectedNecessity(suggested || suggestion.necessity);
@@ -82,10 +101,13 @@ export function TransactionInput({
     setShowAutoComplete(false);
   };
 
-  const handleAutoCompleteSelect = (suggestion: { text: string; transaction: Transaction }) => {
-    haptic('light');
+  const handleAutoCompleteSelect = (suggestion: {
+    text: string;
+    transaction: Transaction;
+  }) => {
+    haptic("light");
     setInput(suggestion.text);
-    
+
     // Auto-apply learned necessity
     const suggested = getSuggestedNecessity(suggestion.transaction.reason);
     setSelectedNecessity(suggested || suggestion.transaction.necessity);
@@ -93,29 +115,32 @@ export function TransactionInput({
   };
 
   const handleAmountPreset = (amount: number) => {
-    haptic('light');
+    haptic("light");
     const currentInput = input.trim();
-    
+
     // If input has text but no amount, append the amount
     if (currentInput.length > 0) {
       // Check if there's already an amount at the end
-      const parts = currentInput.split(' ');
+      const parts = currentInput.split(" ");
       const lastPart = parts[parts.length - 1];
       if (!isNaN(Number(lastPart))) {
         // Replace existing amount
         parts[parts.length - 1] = amount.toString();
-        setInput(parts.join(' '));
+        setInput(parts.join(" "));
       } else {
         setInput(`${currentInput} ${amount}`);
       }
     } else {
       setInput(amount.toString());
     }
-    
+
     inputRef.current?.focus();
   };
 
-  const parsed = useMemo(() => parseInput(input, paymentModes), [input, paymentModes]);
+  const parsed = useMemo(
+    () => parseInput(input, paymentModes),
+    [input, paymentModes]
+  );
 
   // Auto-suggest necessity when reason is parsed
   useEffect(() => {
@@ -130,33 +155,40 @@ export function TransactionInput({
   const handleSubmit = useCallback(() => {
     if (!parsed.isValid || !parsed.amount) return;
 
-    haptic('success');
-    
+    haptic("success");
+
     // Record the necessity for learning
     if (parsed.reason && selectedNecessity) {
       recordNecessity(parsed.reason, selectedNecessity);
     }
-    
+
     onAdd({
       date: selectedDate.toISOString(),
       reason: parsed.reason,
       amount: parsed.amount,
       paymentMode: parsed.paymentMode,
-      type: isIncome ? 'income' : 'expense',
+      type: isIncome ? "income" : "expense",
       necessity: isIncome ? null : selectedNecessity,
     });
 
-    setInput('');
+    setInput("");
     setSelectedNecessity(null);
     setSelectedDate(new Date());
     setShowAutoComplete(false);
-  }, [parsed, isIncome, selectedNecessity, selectedDate, onAdd, recordNecessity, currencySymbol]);
+  }, [
+    parsed,
+    isIncome,
+    selectedNecessity,
+    selectedDate,
+    onAdd,
+    recordNecessity,
+  ]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && parsed.isValid) {
+    if (e.key === "Enter" && parsed.isValid) {
       handleSubmit();
     }
-    if (e.key === 'Escape') {
+    if (e.key === "Escape") {
       setShowAutoComplete(false);
     }
   };
@@ -164,10 +196,10 @@ export function TransactionInput({
   // Long press to repeat last transaction
   const handleLongPressStart = () => {
     if (!lastTransaction || !onRepeatLast) return;
-    
+
     longPressTimer.current = setTimeout(() => {
       setIsLongPressing(true);
-      haptic('success');
+      haptic("success");
       onRepeatLast();
       setTimeout(() => setIsLongPressing(false), 300);
     }, 500);
@@ -188,30 +220,33 @@ export function TransactionInput({
   const handleDateTouchEnd = (e: React.TouchEvent) => {
     const touchEndX = e.changedTouches[0].clientX;
     const diff = touchStartX.current - touchEndX;
-    
+
     // Swipe left = go forward one day (but not past today)
     if (diff > 50) {
       const nextDay = new Date(selectedDate);
       nextDay.setDate(nextDay.getDate() + 1);
       if (nextDay <= new Date()) {
-        haptic('light');
+        haptic("light");
         setSelectedDate(nextDay);
       }
     }
     // Swipe right = go back one day
     else if (diff < -50) {
-      haptic('light');
-      setSelectedDate(prev => subDays(prev, 1));
+      haptic("light");
+      setSelectedDate((prev) => subDays(prev, 1));
     }
   };
 
-  const isToday = format(selectedDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
-  const isYesterday = format(selectedDate, 'yyyy-MM-dd') === format(subDays(new Date(), 1), 'yyyy-MM-dd');
+  const isToday =
+    format(selectedDate, "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd");
+  const isYesterday =
+    format(selectedDate, "yyyy-MM-dd") ===
+    format(subDays(new Date(), 1), "yyyy-MM-dd");
 
   const getDateLabel = () => {
-    if (isToday) return 'Today';
-    if (isYesterday) return 'Yesterday';
-    return format(selectedDate, 'MMM d');
+    if (isToday) return "Today";
+    if (isYesterday) return "Yesterday";
+    return format(selectedDate, "MMM d");
   };
 
   return (
@@ -227,7 +262,8 @@ export function TransactionInput({
                          text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors
                          active:scale-95"
             >
-              {suggestion.reason} {currencySymbol}{suggestion.amount.toLocaleString('en-PK')}
+              {suggestion.reason} {currencySymbol}
+              {suggestion.amount.toLocaleString("en-PK")}
             </button>
           ))}
         </div>
@@ -237,7 +273,7 @@ export function TransactionInput({
       <div className="flex items-center gap-2">
         <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
           <PopoverTrigger asChild>
-            <button 
+            <button
               ref={dateSwipeRef}
               onTouchStart={handleDateTouchStart}
               onTouchEnd={handleDateTouchEnd}
@@ -271,8 +307,8 @@ export function TransactionInput({
             onClick={() => setIsIncome(false)}
             className={cn(
               "flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-all",
-              !isIncome 
-                ? "bg-expense/20 text-expense" 
+              !isIncome
+                ? "bg-expense/20 text-expense"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
@@ -283,8 +319,8 @@ export function TransactionInput({
             onClick={() => setIsIncome(true)}
             className={cn(
               "flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-all",
-              isIncome 
-                ? "bg-income/20 text-income" 
+              isIncome
+                ? "bg-income/20 text-income"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
@@ -312,7 +348,7 @@ export function TransactionInput({
                      placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 
                      focus:ring-primary/30 focus:border-primary transition-all pr-24"
         />
-        
+
         {/* Auto-Complete Dropdown */}
         {showAutoComplete && autoCompleteSuggestions.length > 0 && (
           <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-xl shadow-lg overflow-hidden animate-fade-in">
@@ -322,15 +358,18 @@ export function TransactionInput({
                 onClick={() => handleAutoCompleteSelect(suggestion)}
                 className="w-full px-4 py-2.5 text-left hover:bg-muted transition-colors flex items-center justify-between gap-2"
               >
-                <span className="font-medium capitalize truncate">{suggestion.transaction.reason}</span>
+                <span className="font-medium capitalize truncate">
+                  {suggestion.transaction.reason}
+                </span>
                 <span className="text-sm text-muted-foreground font-mono shrink-0">
-                  {suggestion.transaction.paymentMode} {currencySymbol}{suggestion.transaction.amount.toLocaleString('en-PK')}
+                  {suggestion.transaction.paymentMode} {currencySymbol}
+                  {suggestion.transaction.amount.toLocaleString("en-PK")}
                 </span>
               </button>
             ))}
           </div>
         )}
-        
+
         {/* Voice Input Button */}
         {isSupported && (
           <button
@@ -343,7 +382,11 @@ export function TransactionInput({
             )}
             title={isListening ? "Stop listening" : "Voice input"}
           >
-            {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+            {isListening ? (
+              <MicOff className="w-5 h-5" />
+            ) : (
+              <Mic className="w-5 h-5" />
+            )}
           </button>
         )}
 
@@ -363,22 +406,27 @@ export function TransactionInput({
               : "bg-muted text-muted-foreground cursor-not-allowed",
             isLongPressing && "scale-110"
           )}
-          title={lastTransaction ? "Tap to add, hold to repeat last" : "Add transaction"}
+          title={
+            lastTransaction
+              ? "Tap to add, hold to repeat last"
+              : "Add transaction"
+          }
         >
           <Check className="w-5 h-5" />
         </button>
       </div>
 
-
       {/* Live Preview */}
       {input.length > 0 && (
         <div className="bg-card border border-border rounded-xl p-4 animate-fade-in">
           <div className="flex items-center justify-between mb-3">
-            <span className={cn(
-              "text-xs uppercase tracking-wider font-medium",
-              isIncome ? "text-income" : "text-expense"
-            )}>
-              {isIncome ? '+ Income' : '− Expense'}
+            <span
+              className={cn(
+                "text-xs uppercase tracking-wider font-medium",
+                isIncome ? "text-income" : "text-expense"
+              )}
+            >
+              {isIncome ? "+ Income" : "− Expense"}
             </span>
             {parsed.isValid && (
               <span className="flex items-center gap-1 text-xs text-primary">
@@ -386,30 +434,40 @@ export function TransactionInput({
               </span>
             )}
           </div>
-          
+
           <div className="grid grid-cols-3 gap-4">
             <div>
               <p className="text-xs text-muted-foreground mb-1">Reason</p>
-              <p className={cn(
-                "font-medium capitalize truncate",
-                parsed.reason ? "text-foreground" : "text-muted-foreground"
-              )}>
-                {parsed.reason || '—'}
+              <p
+                className={cn(
+                  "font-medium capitalize truncate",
+                  parsed.reason ? "text-foreground" : "text-muted-foreground"
+                )}
+              >
+                {parsed.reason || "—"}
               </p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground mb-1">Mode</p>
-              <p className="font-medium text-foreground">{parsed.paymentMode}</p>
+              <p className="font-medium text-foreground">
+                {parsed.paymentMode}
+              </p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground mb-1">Amount</p>
-              <p className={cn(
-                "font-mono font-semibold",
-                parsed.amount 
-                  ? (isIncome ? "text-income" : "text-expense") 
-                  : "text-muted-foreground"
-              )}>
-                {parsed.amount ? `${currencySymbol}${parsed.amount.toLocaleString('en-PK')}` : '—'}
+              <p
+                className={cn(
+                  "font-mono font-semibold",
+                  parsed.amount
+                    ? isIncome
+                      ? "text-income"
+                      : "text-expense"
+                    : "text-muted-foreground"
+                )}
+              >
+                {parsed.amount
+                  ? `${currencySymbol}${parsed.amount.toLocaleString("en-PK")}`
+                  : "—"}
               </p>
             </div>
           </div>
@@ -418,10 +476,14 @@ export function TransactionInput({
           {!isIncome && (
             <div className="flex gap-2 mt-4 pt-4 border-t border-border">
               <button
-                onClick={() => setSelectedNecessity(selectedNecessity === 'need' ? null : 'need')}
+                onClick={() =>
+                  setSelectedNecessity(
+                    selectedNecessity === "need" ? null : "need"
+                  )
+                }
                 className={cn(
                   "flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all",
-                  selectedNecessity === 'need'
+                  selectedNecessity === "need"
                     ? "bg-need/20 text-need ring-1 ring-need/30"
                     : "bg-muted text-muted-foreground hover:bg-muted/80"
                 )}
@@ -430,10 +492,14 @@ export function TransactionInput({
                 Need
               </button>
               <button
-                onClick={() => setSelectedNecessity(selectedNecessity === 'want' ? null : 'want')}
+                onClick={() =>
+                  setSelectedNecessity(
+                    selectedNecessity === "want" ? null : "want"
+                  )
+                }
                 className={cn(
                   "flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all",
-                  selectedNecessity === 'want'
+                  selectedNecessity === "want"
                     ? "bg-want/20 text-want ring-1 ring-want/30"
                     : "bg-muted text-muted-foreground hover:bg-muted/80"
                 )}
@@ -441,13 +507,15 @@ export function TransactionInput({
                 <span className="w-2 h-2 rounded-full bg-want" />
                 Want
               </button>
-              
+
               {/* Auto-learned indicator */}
-              {parsed.reason && isLearned(parsed.reason) && selectedNecessity && (
-                <span className="flex items-center gap-1 text-xs text-muted-foreground ml-auto">
-                  <Sparkles className="w-3 h-3" /> Auto-suggested
-                </span>
-              )}
+              {parsed.reason &&
+                isLearned(parsed.reason) &&
+                selectedNecessity && (
+                  <span className="flex items-center gap-1 text-xs text-muted-foreground ml-auto">
+                    <Sparkles className="w-3 h-3" /> Auto-suggested
+                  </span>
+                )}
             </div>
           )}
         </div>
@@ -455,7 +523,9 @@ export function TransactionInput({
 
       {/* Helper Text - no border */}
       <p className="text-xs text-muted-foreground text-center pt-0">
-        Type: <span className="font-mono text-foreground/70">reason</span> <span className="font-mono text-foreground/70">mode</span> <span className="font-mono text-foreground/70">amount</span>
+        Type: <span className="font-mono text-foreground/70">reason</span>{" "}
+        <span className="font-mono text-foreground/70">mode</span>{" "}
+        <span className="font-mono text-foreground/70">amount</span>
         {isSupported && <span className="ml-2">• or tap mic to speak</span>}
       </p>
     </div>

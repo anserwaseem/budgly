@@ -1,10 +1,25 @@
-import { useState, useRef } from 'react';
-import { X, Plus, Trash2, RefreshCw, Download, Upload, FileText, Pencil, Check } from 'lucide-react';
-import { AppSettings, PaymentMode, Transaction } from '@/lib/types';
-import { cn } from '@/lib/utils';
-import { safeUpdate } from '@/lib/pwa';
-import { useToast } from '@/hooks/use-toast';
-import { generateCSVTemplate, exportTransactionsToCSV, parseCSVToTransactions, downloadFile } from '@/lib/csv';
+import { useState, useRef } from "react";
+import {
+  X,
+  Plus,
+  Trash2,
+  RefreshCw,
+  Download,
+  Upload,
+  FileText,
+  Pencil,
+  Check,
+} from "lucide-react";
+import { AppSettings, PaymentMode, Transaction } from "@/lib/types";
+import { cn } from "@/lib/utils";
+import { safeUpdate } from "@/lib/pwa";
+import { useToast } from "@/hooks/use-toast";
+import {
+  generateCSVTemplate,
+  exportTransactionsToCSV,
+  parseCSVToTransactions,
+  downloadFile,
+} from "@/lib/csv";
 
 interface SettingsDialogProps {
   settings: AppSettings;
@@ -12,18 +27,21 @@ interface SettingsDialogProps {
   transactions: Transaction[];
   onSaveSettings: (settings: AppSettings) => void;
   onSavePaymentModes: (modes: PaymentMode[]) => void;
-  onImportTransactions: (transactions: Omit<Transaction, 'id'>[], newModes?: PaymentMode[]) => void;
+  onImportTransactions: (
+    transactions: Omit<Transaction, "id">[],
+    newModes?: PaymentMode[]
+  ) => void;
   onClose: () => void;
 }
 
 const CURRENCIES = [
-  { code: 'PKR', symbol: 'Rs.', name: 'Pakistani Rupee' },
-  { code: 'INR', symbol: '₹', name: 'Indian Rupee' },
-  { code: 'USD', symbol: '$', name: 'US Dollar' },
-  { code: 'EUR', symbol: '€', name: 'Euro' },
-  { code: 'GBP', symbol: '£', name: 'British Pound' },
-  { code: 'AED', symbol: 'د.إ', name: 'UAE Dirham' },
-  { code: 'SAR', symbol: '﷼', name: 'Saudi Riyal' },
+  { code: "PKR", symbol: "Rs.", name: "Pakistani Rupee" },
+  { code: "INR", symbol: "₹", name: "Indian Rupee" },
+  { code: "USD", symbol: "$", name: "US Dollar" },
+  { code: "EUR", symbol: "€", name: "Euro" },
+  { code: "GBP", symbol: "£", name: "British Pound" },
+  { code: "AED", symbol: "د.إ", name: "UAE Dirham" },
+  { code: "SAR", symbol: "﷼", name: "Saudi Riyal" },
 ];
 
 export function SettingsDialog({
@@ -38,12 +56,14 @@ export function SettingsDialog({
   const { toast } = useToast();
   const [localSettings, setLocalSettings] = useState(settings);
   const [localModes, setLocalModes] = useState(paymentModes);
-  const [newModeName, setNewModeName] = useState('');
-  const [newModeShort, setNewModeShort] = useState('');
+  const [newModeName, setNewModeName] = useState("");
+  const [newModeShort, setNewModeShort] = useState("");
   const [editingModeId, setEditingModeId] = useState<string | null>(null);
-  const [editModeName, setEditModeName] = useState('');
-  const [editModeShort, setEditModeShort] = useState('');
-  const [activeTab, setActiveTab] = useState<'general' | 'payments' | 'data'>('general');
+  const [editModeName, setEditModeName] = useState("");
+  const [editModeShort, setEditModeShort] = useState("");
+  const [activeTab, setActiveTab] = useState<"general" | "payments" | "data">(
+    "general"
+  );
   const [isRefreshing, setIsRefreshing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -55,8 +75,8 @@ export function SettingsDialog({
       shorthand: newModeShort.trim().toUpperCase(),
     };
     setLocalModes([...localModes, newMode]);
-    setNewModeName('');
-    setNewModeShort('');
+    setNewModeName("");
+    setNewModeShort("");
   };
 
   const handleDeleteMode = (id: string) => {
@@ -71,20 +91,26 @@ export function SettingsDialog({
 
   const handleSaveEditMode = () => {
     if (!editModeName.trim() || !editModeShort.trim() || !editingModeId) return;
-    setLocalModes(localModes.map(m => 
-      m.id === editingModeId 
-        ? { ...m, name: editModeName.trim(), shorthand: editModeShort.trim().toUpperCase() }
-        : m
-    ));
+    setLocalModes(
+      localModes.map((m) =>
+        m.id === editingModeId
+          ? {
+              ...m,
+              name: editModeName.trim(),
+              shorthand: editModeShort.trim().toUpperCase(),
+            }
+          : m
+      )
+    );
     setEditingModeId(null);
-    setEditModeName('');
-    setEditModeShort('');
+    setEditModeName("");
+    setEditModeShort("");
   };
 
   const handleCancelEdit = () => {
     setEditingModeId(null);
-    setEditModeName('');
-    setEditModeShort('');
+    setEditModeName("");
+    setEditModeShort("");
   };
 
   const handleSave = () => {
@@ -104,7 +130,6 @@ export function SettingsDialog({
     }
   };
 
-
   const handleForceRefresh = async () => {
     setIsRefreshing(true);
     toast({
@@ -116,7 +141,7 @@ export function SettingsDialog({
 
   const handleDownloadTemplate = () => {
     const template = generateCSVTemplate();
-    downloadFile(template, 'bujit-template.csv');
+    downloadFile(template, "bujit-template.csv");
     toast({
       title: "Template Downloaded",
       description: "Fill in your data following the example format.",
@@ -133,7 +158,7 @@ export function SettingsDialog({
       return;
     }
     const csv = exportTransactionsToCSV(transactions);
-    const date = new Date().toISOString().split('T')[0];
+    const date = new Date().toISOString().split("T")[0];
     downloadFile(csv, `bujit-export-${date}.csv`);
     toast({
       title: "Data Exported",
@@ -152,13 +177,21 @@ export function SettingsDialog({
     const reader = new FileReader();
     reader.onload = (event) => {
       const content = event.target?.result as string;
-      const { transactions: parsed, errors, newPaymentModes } = parseCSVToTransactions(content, localModes);
+      const {
+        transactions: parsed,
+        errors,
+        newPaymentModes,
+      } = parseCSVToTransactions(content, localModes);
 
       // If there are ANY errors, reject the entire import
       if (errors.length > 0) {
         toast({
           title: "Import Failed",
-          description: errors.slice(0, 5).join('\n') + (errors.length > 5 ? `\n...and ${errors.length - 5} more errors` : ''),
+          description:
+            errors.slice(0, 5).join("\n") +
+            (errors.length > 5
+              ? `\n...and ${errors.length - 5} more errors`
+              : ""),
           variant: "destructive",
           duration: Infinity,
         });
@@ -170,12 +203,15 @@ export function SettingsDialog({
         if (newPaymentModes.length > 0) {
           setLocalModes([...localModes, ...newPaymentModes]);
         }
-        
+
         onImportTransactions(parsed, newPaymentModes);
         toast({
           title: "Import Successful",
-          description: `${parsed.length} transactions imported.` + 
-            (newPaymentModes.length > 0 ? ` ${newPaymentModes.length} new payment mode(s) added.` : ''),
+          description:
+            `${parsed.length} transactions imported.` +
+            (newPaymentModes.length > 0
+              ? ` ${newPaymentModes.length} new payment mode(s) added.`
+              : ""),
         });
       } else {
         toast({
@@ -186,10 +222,10 @@ export function SettingsDialog({
       }
     };
     reader.readAsText(file);
-    
+
     // Reset input
     if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+      fileInputRef.current.value = "";
     }
   };
 
@@ -208,7 +244,7 @@ export function SettingsDialog({
 
         {/* Tabs */}
         <div className="flex gap-1 p-2 border-b border-border shrink-0">
-          {(['general', 'payments', 'data'] as const).map((tab) => (
+          {(["general", "payments", "data"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -225,10 +261,12 @@ export function SettingsDialog({
         </div>
 
         <div className="flex-1 overflow-y-auto p-4">
-          {activeTab === 'general' && (
+          {activeTab === "general" && (
             <div className="space-y-6">
               <div>
-                <label className="text-sm text-muted-foreground mb-2 block">Currency</label>
+                <label className="text-sm text-muted-foreground mb-2 block">
+                  Currency
+                </label>
                 <select
                   value={localSettings.currency}
                   onChange={(e) => handleCurrencyChange(e.target.value)}
@@ -244,7 +282,8 @@ export function SettingsDialog({
                   ))}
                 </select>
                 <p className="text-xs text-muted-foreground mt-2">
-                  This currency will be used throughout the app for displaying amounts.
+                  This currency will be used throughout the app for displaying
+                  amounts.
                 </p>
               </div>
 
@@ -259,7 +298,9 @@ export function SettingsDialog({
                     "bg-primary text-primary-foreground hover:opacity-90"
                   )}
                 >
-                  <RefreshCw className={cn("w-4 h-4", isRefreshing && "animate-spin")} />
+                  <RefreshCw
+                    className={cn("w-4 h-4", isRefreshing && "animate-spin")}
+                  />
                   {isRefreshing ? "Updating..." : "Update App"}
                 </button>
                 <p className="text-xs text-muted-foreground mt-2">
@@ -269,10 +310,11 @@ export function SettingsDialog({
             </div>
           )}
 
-          {activeTab === 'payments' && (
+          {activeTab === "payments" && (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Add your payment methods. Use the shorthand when entering transactions (e.g., "tea JC 50" for JazzCash).
+                Add your payment methods. Use the shorthand when entering
+                transactions (e.g., "tea JC 50" for JazzCash).
               </p>
 
               {/* Add new mode */}
@@ -339,7 +381,9 @@ export function SettingsDialog({
                         <div className="flex items-center gap-1 ml-2">
                           <button
                             onClick={handleSaveEditMode}
-                            disabled={!editModeName.trim() || !editModeShort.trim()}
+                            disabled={
+                              !editModeName.trim() || !editModeShort.trim()
+                            }
                             className="p-1.5 rounded-md text-primary hover:bg-primary/10 transition-colors"
                           >
                             <Check className="w-4 h-4" />
@@ -385,7 +429,7 @@ export function SettingsDialog({
             </div>
           )}
 
-          {activeTab === 'data' && (
+          {activeTab === "data" && (
             <div className="space-y-4">
               {/* Hidden file input */}
               <input
@@ -419,7 +463,7 @@ export function SettingsDialog({
               {/* Import Section */}
               <div className="border-t border-border pt-4">
                 <h3 className="text-sm font-medium mb-3">Import Data</h3>
-                
+
                 <div className="space-y-3">
                   <button
                     onClick={handleDownloadTemplate}
@@ -429,7 +473,7 @@ export function SettingsDialog({
                     <FileText className="w-4 h-4" />
                     Download CSV Template
                   </button>
-                  
+
                   <button
                     onClick={handleImportClick}
                     className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg font-medium
@@ -442,17 +486,18 @@ export function SettingsDialog({
 
                 <div className="bg-muted/50 rounded-lg p-3 mt-3">
                   <p className="text-xs text-muted-foreground">
-                    <strong>Format:</strong> DD/MM/YYYY, reason, amount, paymentMode, type, necessity
+                    <strong>Format:</strong> DD/MM/YYYY, reason, amount,
+                    paymentMode, type, necessity
                     <br />
                     <span className="text-muted-foreground/80">
-                      Unknown payment modes are auto-added. Necessity is ignored for income.
+                      Unknown payment modes are auto-added. Necessity is ignored
+                      for income.
                     </span>
                   </p>
                 </div>
               </div>
             </div>
           )}
-
         </div>
 
         <div className="flex gap-2 p-4 border-t border-border shrink-0">

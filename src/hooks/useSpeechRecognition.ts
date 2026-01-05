@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { haptic } from '@/lib/utils';
+import { useState, useEffect, useCallback, useRef } from "react";
+import { haptic } from "@/lib/utils";
 
 // Type declarations for Web Speech API
 interface SpeechRecognitionEvent extends Event {
@@ -31,15 +31,18 @@ interface UseSpeechRecognitionOptions {
   onError?: (error: string) => void;
 }
 
-export function useSpeechRecognition({ onResult, onError }: UseSpeechRecognitionOptions = {}) {
+export function useSpeechRecognition({
+  onResult,
+  onError,
+}: UseSpeechRecognitionOptions = {}) {
   const [isListening, setIsListening] = useState(false);
   const [isSupported, setIsSupported] = useState(false);
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
-  
+
   // Use refs for callbacks to avoid recreating recognition on every render
   const onResultRef = useRef(onResult);
   const onErrorRef = useRef(onError);
-  
+
   // Keep refs updated
   useEffect(() => {
     onResultRef.current = onResult;
@@ -47,39 +50,49 @@ export function useSpeechRecognition({ onResult, onError }: UseSpeechRecognition
   }, [onResult, onError]);
 
   useEffect(() => {
-    const SpeechRecognitionAPI = (window as unknown as { SpeechRecognition?: SpeechRecognitionConstructor; webkitSpeechRecognition?: SpeechRecognitionConstructor }).SpeechRecognition || 
-                                  (window as unknown as { webkitSpeechRecognition?: SpeechRecognitionConstructor }).webkitSpeechRecognition;
-    
+    const SpeechRecognitionAPI =
+      (
+        window as unknown as {
+          SpeechRecognition?: SpeechRecognitionConstructor;
+          webkitSpeechRecognition?: SpeechRecognitionConstructor;
+        }
+      ).SpeechRecognition ||
+      (
+        window as unknown as {
+          webkitSpeechRecognition?: SpeechRecognitionConstructor;
+        }
+      ).webkitSpeechRecognition;
+
     const supported = !!SpeechRecognitionAPI;
     setIsSupported(supported);
-    
+
     if (!supported) {
-      console.warn('Speech recognition not supported in this browser');
+      console.warn("Speech recognition not supported in this browser");
       return;
     }
 
     const recognition = new SpeechRecognitionAPI();
     recognition.continuous = false;
     recognition.interimResults = false;
-    recognition.lang = 'en-US';
+    recognition.lang = "en-US";
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
       const transcript = event.results[0][0].transcript;
-      console.log('Speech recognized:', transcript);
-      haptic('success');
+      console.log("Speech recognized:", transcript);
+      haptic("success");
       onResultRef.current?.(transcript);
       setIsListening(false);
     };
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-      console.error('Speech recognition error:', event.error);
-      haptic('error');
+      console.error("Speech recognition error:", event.error);
+      haptic("error");
       onErrorRef.current?.(event.error);
       setIsListening(false);
     };
 
     recognition.onend = () => {
-      console.log('Speech recognition ended');
+      console.log("Speech recognition ended");
       setIsListening(false);
     };
 
@@ -92,19 +105,19 @@ export function useSpeechRecognition({ onResult, onError }: UseSpeechRecognition
 
   const startListening = useCallback(() => {
     if (!recognitionRef.current) {
-      console.error('Speech recognition not initialized');
+      console.error("Speech recognition not initialized");
       return;
     }
-    
-    haptic('medium');
+
+    haptic("medium");
     try {
       recognitionRef.current.start();
       setIsListening(true);
-      console.log('Speech recognition started');
+      console.log("Speech recognition started");
     } catch (e) {
-      console.error('Failed to start speech recognition:', e);
+      console.error("Failed to start speech recognition:", e);
       // If already started, stop and restart
-      if ((e as Error).message?.includes('already started')) {
+      if ((e as Error).message?.includes("already started")) {
         recognitionRef.current.stop();
         setTimeout(() => {
           recognitionRef.current?.start();
@@ -116,7 +129,7 @@ export function useSpeechRecognition({ onResult, onError }: UseSpeechRecognition
 
   const stopListening = useCallback(() => {
     if (!recognitionRef.current) return;
-    
+
     recognitionRef.current.stop();
     setIsListening(false);
   }, []);

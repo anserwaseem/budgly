@@ -1,42 +1,90 @@
-import { useMemo } from 'react';
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, LineChart, Line, AreaChart, Area } from 'recharts';
-import { Transaction } from '@/lib/types';
-import { formatAmount } from '@/lib/parser';
-import { TrendingUp, TrendingDown, Wallet, Target, Calendar, CreditCard, PiggyBank, ArrowUpRight, ArrowDownRight, Flame, Award, Repeat, DollarSign, CalendarCheck, ChevronDown } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, subYears } from 'date-fns';
+import { useMemo } from "react";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  ResponsiveContainer,
+  Tooltip,
+  LineChart,
+  Line,
+  AreaChart,
+  Area,
+} from "recharts";
+import { Transaction } from "@/lib/types";
+import { formatAmount } from "@/lib/parser";
+import {
+  TrendingUp,
+  TrendingDown,
+  Wallet,
+  Target,
+  Calendar,
+  CreditCard,
+  PiggyBank,
+  ArrowUpRight,
+  ArrowDownRight,
+  Flame,
+  Award,
+  Repeat,
+  DollarSign,
+  CalendarCheck,
+  ChevronDown,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import {
+  format,
+  startOfMonth,
+  endOfMonth,
+  startOfYear,
+  endOfYear,
+  subMonths,
+  subYears,
+} from "date-fns";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from "@/components/ui/select";
 
-type TimePeriod = 'thisMonth' | 'lastMonth' | 'thisYear' | 'lastYear' | 'allTime';
+type TimePeriod =
+  | "thisMonth"
+  | "lastMonth"
+  | "thisYear"
+  | "lastYear"
+  | "allTime";
 
 const TIME_PERIOD_LABELS: Record<TimePeriod, string> = {
-  thisMonth: 'This Month',
-  lastMonth: 'Last Month',
-  thisYear: 'This Year',
-  lastYear: 'Last Year',
-  allTime: 'All Time',
+  thisMonth: "This Month",
+  lastMonth: "Last Month",
+  thisYear: "This Year",
+  lastYear: "Last Year",
+  allTime: "All Time",
 };
 
-function getDateRangeForPeriod(period: TimePeriod): { start: Date | null; end: Date | null } {
+function getDateRangeForPeriod(period: TimePeriod): {
+  start: Date | null;
+  end: Date | null;
+} {
   const now = new Date();
   switch (period) {
-    case 'thisMonth':
+    case "thisMonth":
       return { start: startOfMonth(now), end: endOfMonth(now) };
-    case 'lastMonth':
+    case "lastMonth": {
       const lastMonth = subMonths(now, 1);
       return { start: startOfMonth(lastMonth), end: endOfMonth(lastMonth) };
-    case 'thisYear':
+    }
+    case "thisYear":
       return { start: startOfYear(now), end: endOfYear(now) };
-    case 'lastYear':
+    case "lastYear": {
       const lastYear = subYears(now, 1);
       return { start: startOfYear(lastYear), end: endOfYear(lastYear) };
-    case 'allTime':
+    }
+    case "allTime":
       return { start: null, end: null };
     default:
       return { start: startOfMonth(now), end: endOfMonth(now) };
@@ -50,11 +98,16 @@ interface DashboardProps {
   onTimePeriodChange?: (period: TimePeriod) => void;
 }
 
-export function Dashboard({ transactions, currencySymbol, timePeriod = 'thisMonth', onTimePeriodChange }: DashboardProps) {
+export function Dashboard({
+  transactions,
+  currencySymbol,
+  timePeriod = "thisMonth",
+  onTimePeriodChange,
+}: DashboardProps) {
   // Filter transactions by selected time period
   const filteredTransactions = useMemo(() => {
     const { start, end } = getDateRangeForPeriod(timePeriod);
-    return transactions.filter(t => {
+    return transactions.filter((t) => {
       const txDate = new Date(t.date);
       if (start && txDate < start) return false;
       if (end && txDate > end) return false;
@@ -69,30 +122,53 @@ export function Dashboard({ transactions, currencySymbol, timePeriod = 'thisMont
     const endOfLastMonth = endOfMonth(subMonths(now, 1));
 
     // Use filtered transactions for main stats
-    const periodExpenses = filteredTransactions.filter(t => t.type === 'expense');
-    const periodIncome = filteredTransactions.filter(t => t.type === 'income');
+    const periodExpenses = filteredTransactions.filter(
+      (t) => t.type === "expense"
+    );
+    const periodIncome = filteredTransactions.filter(
+      (t) => t.type === "income"
+    );
 
     // For comparison, use previous period
     const lastMonth = transactions.filter(
-      (t) => new Date(t.date) >= startOfLastMonth && new Date(t.date) <= endOfLastMonth && t.type === 'expense'
+      (t) =>
+        new Date(t.date) >= startOfLastMonth &&
+        new Date(t.date) <= endOfLastMonth &&
+        t.type === "expense"
     );
     const lastMonthIncome = transactions.filter(
-      (t) => new Date(t.date) >= startOfLastMonth && new Date(t.date) <= endOfLastMonth && t.type === 'income'
+      (t) =>
+        new Date(t.date) >= startOfLastMonth &&
+        new Date(t.date) <= endOfLastMonth &&
+        t.type === "income"
     );
 
     const periodTotal = periodExpenses.reduce((sum, t) => sum + t.amount, 0);
     const lastMonthTotal = lastMonth.reduce((sum, t) => sum + t.amount, 0);
-    const periodIncomeTotal = periodIncome.reduce((sum, t) => sum + t.amount, 0);
-    const lastMonthIncomeTotal = lastMonthIncome.reduce((sum, t) => sum + t.amount, 0);
+    const periodIncomeTotal = periodIncome.reduce(
+      (sum, t) => sum + t.amount,
+      0
+    );
+    const lastMonthIncomeTotal = lastMonthIncome.reduce(
+      (sum, t) => sum + t.amount,
+      0
+    );
 
-    const needsTotal = periodExpenses.filter((t) => t.necessity === 'need').reduce((sum, t) => sum + t.amount, 0);
-    const wantsTotal = periodExpenses.filter((t) => t.necessity === 'want').reduce((sum, t) => sum + t.amount, 0);
-    const uncategorized = periodExpenses.filter((t) => !t.necessity).reduce((sum, t) => sum + t.amount, 0);
+    const needsTotal = periodExpenses
+      .filter((t) => t.necessity === "need")
+      .reduce((sum, t) => sum + t.amount, 0);
+    const wantsTotal = periodExpenses
+      .filter((t) => t.necessity === "want")
+      .reduce((sum, t) => sum + t.amount, 0);
+    const uncategorized = periodExpenses
+      .filter((t) => !t.necessity)
+      .reduce((sum, t) => sum + t.amount, 0);
 
     // Savings for period
     const savingsThisPeriod = periodIncomeTotal - periodTotal;
     const savingsLastMonth = lastMonthIncomeTotal - lastMonthTotal;
-    const savingsRate = periodIncomeTotal > 0 ? (savingsThisPeriod / periodIncomeTotal) * 100 : 0;
+    const savingsRate =
+      periodIncomeTotal > 0 ? (savingsThisPeriod / periodIncomeTotal) * 100 : 0;
 
     // By payment mode
     const byMode: Record<string, number> = {};
@@ -103,7 +179,7 @@ export function Dashboard({ transactions, currencySymbol, timePeriod = 'thisMont
     // Top spending categories (by reason)
     const byReason: Record<string, number> = {};
     periodExpenses.forEach((t) => {
-      const reason = t.reason || 'Other';
+      const reason = t.reason || "Other";
       byReason[reason] = (byReason[reason] || 0) + t.amount;
     });
     const topCategories = Object.entries(byReason)
@@ -118,37 +194,48 @@ export function Dashboard({ transactions, currencySymbol, timePeriod = 'thisMont
       date.setDate(date.getDate() - i);
       const dateStr = date.toDateString();
       const dayExpense = filteredTransactions
-        .filter((t) => new Date(t.date).toDateString() === dateStr && t.type === 'expense')
+        .filter(
+          (t) =>
+            new Date(t.date).toDateString() === dateStr && t.type === "expense"
+        )
         .reduce((sum, t) => sum + t.amount, 0);
       const dayIncome = filteredTransactions
-        .filter((t) => new Date(t.date).toDateString() === dateStr && t.type === 'income')
+        .filter(
+          (t) =>
+            new Date(t.date).toDateString() === dateStr && t.type === "income"
+        )
         .reduce((sum, t) => sum + t.amount, 0);
       dailyData.push({
-        day: date.toLocaleDateString('en', { weekday: 'short' }),
+        day: date.toLocaleDateString("en", { weekday: "short" }),
         expense: dayExpense,
         income: dayIncome,
       });
     }
 
     // Monthly trend (last 6 months) with income
-    const monthlyTrend: { month: string; expense: number; income: number; savings: number }[] = [];
+    const monthlyTrend: {
+      month: string;
+      expense: number;
+      income: number;
+      savings: number;
+    }[] = [];
     for (let i = 5; i >= 0; i--) {
       const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
       const monthExpense = transactions
         .filter((t) => {
           const d = new Date(t.date);
-          return d >= monthStart && d <= monthEnd && t.type === 'expense';
+          return d >= monthStart && d <= monthEnd && t.type === "expense";
         })
         .reduce((sum, t) => sum + t.amount, 0);
       const monthIncome = transactions
         .filter((t) => {
           const d = new Date(t.date);
-          return d >= monthStart && d <= monthEnd && t.type === 'income';
+          return d >= monthStart && d <= monthEnd && t.type === "income";
         })
         .reduce((sum, t) => sum + t.amount, 0);
       monthlyTrend.push({
-        month: monthStart.toLocaleDateString('en', { month: 'short' }),
+        month: monthStart.toLocaleDateString("en", { month: "short" }),
         expense: monthExpense,
         income: monthIncome,
         savings: monthIncome - monthExpense,
@@ -158,59 +245,74 @@ export function Dashboard({ transactions, currencySymbol, timePeriod = 'thisMont
     // Weekly spending comparison
     const getWeekData = (weeksAgo: number) => {
       const weekStart = new Date();
-      weekStart.setDate(weekStart.getDate() - weekStart.getDay() - (weeksAgo * 7));
+      weekStart.setDate(
+        weekStart.getDate() - weekStart.getDay() - weeksAgo * 7
+      );
       const weekEnd = new Date(weekStart);
       weekEnd.setDate(weekEnd.getDate() + 6);
       return filteredTransactions
         .filter((t) => {
           const d = new Date(t.date);
-          return d >= weekStart && d <= weekEnd && t.type === 'expense';
+          return d >= weekStart && d <= weekEnd && t.type === "expense";
         })
         .reduce((sum, t) => sum + t.amount, 0);
     };
 
     const thisWeekTotal = getWeekData(0);
     const lastWeekTotal = getWeekData(1);
-    const weekChange = lastWeekTotal > 0 ? ((thisWeekTotal - lastWeekTotal) / lastWeekTotal) * 100 : 0;
+    const weekChange =
+      lastWeekTotal > 0
+        ? ((thisWeekTotal - lastWeekTotal) / lastWeekTotal) * 100
+        : 0;
 
     // Average daily spending - use period days count
-    const { start: periodStart, end: periodEnd } = getDateRangeForPeriod(timePeriod);
-    const daysInPeriod = periodStart && periodEnd 
-      ? Math.ceil((Math.min(now.getTime(), periodEnd.getTime()) - periodStart.getTime()) / (1000 * 60 * 60 * 24)) + 1
-      : 1;
-    const avgDailySpending = periodExpenses.length > 0 
-      ? periodTotal / daysInPeriod
-      : 0;
+    const { start: periodStart, end: periodEnd } =
+      getDateRangeForPeriod(timePeriod);
+    const daysInPeriod =
+      periodStart && periodEnd
+        ? Math.ceil(
+            (Math.min(now.getTime(), periodEnd.getTime()) -
+              periodStart.getTime()) /
+              (1000 * 60 * 60 * 24)
+          ) + 1
+        : 1;
+    const avgDailySpending =
+      periodExpenses.length > 0 ? periodTotal / daysInPeriod : 0;
 
     // Transaction count
     const transactionCount = periodExpenses.length;
 
-    const percentChange = lastMonthTotal > 0 
-      ? ((periodTotal - lastMonthTotal) / lastMonthTotal) * 100 
-      : 0;
+    const percentChange =
+      lastMonthTotal > 0
+        ? ((periodTotal - lastMonthTotal) / lastMonthTotal) * 100
+        : 0;
 
     // Biggest expense in period
-    const biggestExpense = periodExpenses.length > 0 
-      ? periodExpenses.reduce((max, t) => t.amount > max.amount ? t : max, periodExpenses[0])
-      : null;
+    const biggestExpense =
+      periodExpenses.length > 0
+        ? periodExpenses.reduce(
+            (max, t) => (t.amount > max.amount ? t : max),
+            periodExpenses[0]
+          )
+        : null;
 
     // Most frequent category
     const frequencyByReason: Record<string, number> = {};
-    periodExpenses.forEach(t => {
-      const reason = t.reason || 'Other';
+    periodExpenses.forEach((t) => {
+      const reason = t.reason || "Other";
       frequencyByReason[reason] = (frequencyByReason[reason] || 0) + 1;
     });
-    const mostFrequentCategory = Object.entries(frequencyByReason)
-      .sort(([, a], [, b]) => b - a)[0];
+    const mostFrequentCategory = Object.entries(frequencyByReason).sort(
+      ([, a], [, b]) => b - a
+    )[0];
 
     // Average transaction size
-    const avgTransactionSize = transactionCount > 0 
-      ? periodTotal / transactionCount 
-      : 0;
+    const avgTransactionSize =
+      transactionCount > 0 ? periodTotal / transactionCount : 0;
 
     // Days with spending
     const uniqueSpendingDays = new Set(
-      periodExpenses.map(t => new Date(t.date).toDateString())
+      periodExpenses.map((t) => new Date(t.date).toDateString())
     ).size;
 
     // Spending streak (consecutive days with expenses)
@@ -221,7 +323,8 @@ export function Dashboard({ transactions, currencySymbol, timePeriod = 'thisMont
       checkDate.setDate(checkDate.getDate() - i);
       const dateStr = checkDate.toDateString();
       const hasExpense = filteredTransactions.some(
-        t => new Date(t.date).toDateString() === dateStr && t.type === 'expense'
+        (t) =>
+          new Date(t.date).toDateString() === dateStr && t.type === "expense"
       );
       if (hasExpense) {
         streakDays++;
@@ -232,20 +335,23 @@ export function Dashboard({ transactions, currencySymbol, timePeriod = 'thisMont
 
     // Best/worst spending day in period
     const dailyTotals: Record<string, number> = {};
-    periodExpenses.forEach(t => {
+    periodExpenses.forEach((t) => {
       const dateStr = new Date(t.date).toDateString();
       dailyTotals[dateStr] = (dailyTotals[dateStr] || 0) + t.amount;
     });
     const dailyTotalsArr = Object.entries(dailyTotals);
-    const bestDay = dailyTotalsArr.length > 0 
-      ? dailyTotalsArr.reduce((min, curr) => curr[1] < min[1] ? curr : min)
-      : null;
-    const worstDay = dailyTotalsArr.length > 0 
-      ? dailyTotalsArr.reduce((max, curr) => curr[1] > max[1] ? curr : max)
-      : null;
+    const bestDay =
+      dailyTotalsArr.length > 0
+        ? dailyTotalsArr.reduce((min, curr) => (curr[1] < min[1] ? curr : min))
+        : null;
+    const worstDay =
+      dailyTotalsArr.length > 0
+        ? dailyTotalsArr.reduce((max, curr) => (curr[1] > max[1] ? curr : max))
+        : null;
 
     // Needs/wants ratio
-    const needsWantsRatio = wantsTotal > 0 ? needsTotal / wantsTotal : needsTotal > 0 ? Infinity : 0;
+    const needsWantsRatio =
+      wantsTotal > 0 ? needsTotal / wantsTotal : needsTotal > 0 ? Infinity : 0;
 
     return {
       periodTotal,
@@ -278,25 +384,29 @@ export function Dashboard({ transactions, currencySymbol, timePeriod = 'thisMont
   }, [filteredTransactions, transactions, timePeriod]);
 
   const pieData = [
-    { name: 'Needs', value: analytics.needsTotal, color: 'hsl(190, 65%, 50%)' },
-    { name: 'Wants', value: analytics.wantsTotal, color: 'hsl(35, 85%, 55%)' },
-    { name: 'Other', value: analytics.uncategorized, color: 'hsl(220, 15%, 40%)' },
+    { name: "Needs", value: analytics.needsTotal, color: "hsl(190, 65%, 50%)" },
+    { name: "Wants", value: analytics.wantsTotal, color: "hsl(35, 85%, 55%)" },
+    {
+      name: "Other",
+      value: analytics.uncategorized,
+      color: "hsl(220, 15%, 40%)",
+    },
   ].filter((d) => d.value > 0);
 
   const modeColors = [
-    'hsl(158, 55%, 50%)',
-    'hsl(190, 65%, 50%)',
-    'hsl(35, 85%, 55%)',
-    'hsl(265, 50%, 60%)',
-    'hsl(0, 60%, 55%)',
+    "hsl(158, 55%, 50%)",
+    "hsl(190, 65%, 50%)",
+    "hsl(35, 85%, 55%)",
+    "hsl(265, 50%, 60%)",
+    "hsl(0, 60%, 55%)",
   ];
 
   const categoryColors = [
-    'hsl(var(--primary))',
-    'hsl(190, 65%, 50%)',
-    'hsl(35, 85%, 55%)',
-    'hsl(265, 50%, 60%)',
-    'hsl(158, 55%, 50%)',
+    "hsl(var(--primary))",
+    "hsl(190, 65%, 50%)",
+    "hsl(35, 85%, 55%)",
+    "hsl(265, 50%, 60%)",
+    "hsl(158, 55%, 50%)",
   ];
 
   return (
@@ -304,7 +414,10 @@ export function Dashboard({ transactions, currencySymbol, timePeriod = 'thisMont
       {/* Time Period Dropdown */}
       <div className="text-center">
         {onTimePeriodChange ? (
-          <Select value={timePeriod} onValueChange={(v) => onTimePeriodChange(v as TimePeriod)}>
+          <Select
+            value={timePeriod}
+            onValueChange={(v) => onTimePeriodChange(v as TimePeriod)}
+          >
             <SelectTrigger className="w-auto mx-auto h-8 px-3 text-sm font-medium border-0 bg-muted/50 hover:bg-muted focus:ring-0">
               <SelectValue />
               <ChevronDown className="w-4 h-4 ml-1 opacity-50" />
@@ -329,33 +442,45 @@ export function Dashboard({ transactions, currencySymbol, timePeriod = 'thisMont
         <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
           <div className="flex items-center gap-1.5 text-muted-foreground mb-1.5">
             <Wallet className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
-            <span className="text-[10px] sm:text-xs uppercase tracking-wider">Spent</span>
+            <span className="text-[10px] sm:text-xs uppercase tracking-wider">
+              Spent
+            </span>
           </div>
           <p className="text-base sm:text-xl font-bold font-mono text-expense truncate">
-            {currencySymbol}{formatAmount(analytics.periodTotal)}
+            {currencySymbol}
+            {formatAmount(analytics.periodTotal)}
           </p>
-          <div className={cn(
-            "flex items-center gap-1 text-[10px] sm:text-xs mt-1",
-            analytics.percentChange <= 0 ? 'text-income' : 'text-expense'
-          )}>
+          <div
+            className={cn(
+              "flex items-center gap-1 text-[10px] sm:text-xs mt-1",
+              analytics.percentChange <= 0 ? "text-income" : "text-expense"
+            )}
+          >
             {analytics.percentChange <= 0 ? (
               <TrendingDown className="w-2.5 h-2.5 sm:w-3 sm:h-3 flex-shrink-0" />
             ) : (
               <TrendingUp className="w-2.5 h-2.5 sm:w-3 sm:h-3 flex-shrink-0" />
             )}
-            <span className="truncate">{Math.abs(analytics.percentChange).toFixed(0)}% vs last month</span>
+            <span className="truncate">
+              {Math.abs(analytics.percentChange).toFixed(0)}% vs last month
+            </span>
           </div>
         </div>
 
         <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
           <div className="flex items-center gap-1.5 text-muted-foreground mb-1.5">
             <ArrowUpRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
-            <span className="text-[10px] sm:text-xs uppercase tracking-wider">Income</span>
+            <span className="text-[10px] sm:text-xs uppercase tracking-wider">
+              Income
+            </span>
           </div>
           <p className="text-base sm:text-xl font-bold font-mono text-income truncate">
-            {currencySymbol}{formatAmount(analytics.periodIncomeTotal)}
+            {currencySymbol}
+            {formatAmount(analytics.periodIncomeTotal)}
           </p>
-          <p className="text-[10px] sm:text-xs text-muted-foreground mt-1 truncate">{TIME_PERIOD_LABELS[timePeriod]}</p>
+          <p className="text-[10px] sm:text-xs text-muted-foreground mt-1 truncate">
+            {TIME_PERIOD_LABELS[timePeriod]}
+          </p>
         </div>
       </div>
 
@@ -364,37 +489,51 @@ export function Dashboard({ transactions, currencySymbol, timePeriod = 'thisMont
         <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
           <div className="flex items-center gap-1.5 text-muted-foreground mb-1.5">
             <PiggyBank className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
-            <span className="text-[10px] sm:text-xs uppercase tracking-wider">Savings</span>
+            <span className="text-[10px] sm:text-xs uppercase tracking-wider">
+              Savings
+            </span>
           </div>
-          <p className={cn(
-            "text-base sm:text-xl font-bold font-mono truncate",
-            analytics.savingsThisPeriod >= 0 ? 'text-income' : 'text-expense'
-          )}>
-            {analytics.savingsThisPeriod >= 0 ? '+' : ''}{currencySymbol}{formatAmount(Math.abs(analytics.savingsThisPeriod))}
+          <p
+            className={cn(
+              "text-base sm:text-xl font-bold font-mono truncate",
+              analytics.savingsThisPeriod >= 0 ? "text-income" : "text-expense"
+            )}
+          >
+            {analytics.savingsThisPeriod >= 0 ? "+" : ""}
+            {currencySymbol}
+            {formatAmount(Math.abs(analytics.savingsThisPeriod))}
           </p>
           <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
-            {analytics.savingsRate >= 0 ? analytics.savingsRate.toFixed(0) : 0}% savings rate
+            {analytics.savingsRate >= 0 ? analytics.savingsRate.toFixed(0) : 0}%
+            savings rate
           </p>
         </div>
 
         <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
           <div className="flex items-center gap-1.5 text-muted-foreground mb-1.5">
             <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
-            <span className="text-[10px] sm:text-xs uppercase tracking-wider">This Week</span>
+            <span className="text-[10px] sm:text-xs uppercase tracking-wider">
+              This Week
+            </span>
           </div>
           <p className="text-base sm:text-xl font-bold font-mono text-foreground truncate">
-            {currencySymbol}{formatAmount(analytics.thisWeekTotal)}
+            {currencySymbol}
+            {formatAmount(analytics.thisWeekTotal)}
           </p>
-          <div className={cn(
-            "flex items-center gap-1 text-[10px] sm:text-xs mt-1",
-            analytics.weekChange <= 0 ? 'text-income' : 'text-expense'
-          )}>
+          <div
+            className={cn(
+              "flex items-center gap-1 text-[10px] sm:text-xs mt-1",
+              analytics.weekChange <= 0 ? "text-income" : "text-expense"
+            )}
+          >
             {analytics.weekChange <= 0 ? (
               <ArrowDownRight className="w-2.5 h-2.5 sm:w-3 sm:h-3 flex-shrink-0" />
             ) : (
               <ArrowUpRight className="w-2.5 h-2.5 sm:w-3 sm:h-3 flex-shrink-0" />
             )}
-            <span className="truncate">{Math.abs(analytics.weekChange).toFixed(0)}% vs last week</span>
+            <span className="truncate">
+              {Math.abs(analytics.weekChange).toFixed(0)}% vs last week
+            </span>
           </div>
         </div>
       </div>
@@ -404,23 +543,32 @@ export function Dashboard({ transactions, currencySymbol, timePeriod = 'thisMont
         <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
           <div className="flex items-center gap-1.5 text-muted-foreground mb-1.5">
             <Target className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
-            <span className="text-[10px] sm:text-xs uppercase tracking-wider">Daily Avg</span>
+            <span className="text-[10px] sm:text-xs uppercase tracking-wider">
+              Daily Avg
+            </span>
           </div>
           <p className="text-base sm:text-xl font-bold font-mono text-foreground truncate">
-            {currencySymbol}{formatAmount(analytics.avgDailySpending)}
+            {currencySymbol}
+            {formatAmount(analytics.avgDailySpending)}
           </p>
-          <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">Per day this month</p>
+          <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
+            Per day this month
+          </p>
         </div>
 
         <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
           <div className="flex items-center gap-1.5 text-muted-foreground mb-1.5">
             <CreditCard className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
-            <span className="text-[10px] sm:text-xs uppercase tracking-wider">Transactions</span>
+            <span className="text-[10px] sm:text-xs uppercase tracking-wider">
+              Transactions
+            </span>
           </div>
           <p className="text-base sm:text-xl font-bold font-mono text-foreground">
             {analytics.transactionCount}
           </p>
-          <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">This month</p>
+          <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
+            This month
+          </p>
         </div>
       </div>
 
@@ -430,24 +578,33 @@ export function Dashboard({ transactions, currencySymbol, timePeriod = 'thisMont
         <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
           <div className="flex items-center gap-1.5 text-muted-foreground mb-1.5">
             <Flame className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
-            <span className="text-[10px] sm:text-xs uppercase tracking-wider">Streak</span>
+            <span className="text-[10px] sm:text-xs uppercase tracking-wider">
+              Streak
+            </span>
           </div>
           <p className="text-base sm:text-xl font-bold font-mono text-foreground">
-            {analytics.streakDays} {analytics.streakDays === 1 ? 'day' : 'days'}
+            {analytics.streakDays} {analytics.streakDays === 1 ? "day" : "days"}
           </p>
-          <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">Consecutive spending</p>
+          <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
+            Consecutive spending
+          </p>
         </div>
 
         {/* Avg Transaction */}
         <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
           <div className="flex items-center gap-1.5 text-muted-foreground mb-1.5">
             <DollarSign className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
-            <span className="text-[10px] sm:text-xs uppercase tracking-wider">Avg/Txn</span>
+            <span className="text-[10px] sm:text-xs uppercase tracking-wider">
+              Avg/Txn
+            </span>
           </div>
           <p className="text-base sm:text-xl font-bold font-mono text-foreground truncate">
-            {currencySymbol}{formatAmount(analytics.avgTransactionSize)}
+            {currencySymbol}
+            {formatAmount(analytics.avgTransactionSize)}
           </p>
-          <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">Per transaction</p>
+          <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
+            Per transaction
+          </p>
         </div>
       </div>
 
@@ -457,12 +614,16 @@ export function Dashboard({ transactions, currencySymbol, timePeriod = 'thisMont
         <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
           <div className="flex items-center gap-1.5 text-muted-foreground mb-1.5">
             <CalendarCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
-            <span className="text-[10px] sm:text-xs uppercase tracking-wider">Active Days</span>
+            <span className="text-[10px] sm:text-xs uppercase tracking-wider">
+              Active Days
+            </span>
           </div>
           <p className="text-base sm:text-xl font-bold font-mono text-foreground">
             {analytics.uniqueSpendingDays}
           </p>
-          <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">Days with expenses</p>
+          <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
+            Days with expenses
+          </p>
         </div>
 
         {/* Most Frequent */}
@@ -470,7 +631,9 @@ export function Dashboard({ transactions, currencySymbol, timePeriod = 'thisMont
           <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
             <div className="flex items-center gap-1.5 text-muted-foreground mb-1.5">
               <Repeat className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
-              <span className="text-[10px] sm:text-xs uppercase tracking-wider">Most Frequent</span>
+              <span className="text-[10px] sm:text-xs uppercase tracking-wider">
+                Most Frequent
+              </span>
             </div>
             <p className="text-sm sm:text-lg font-bold text-foreground capitalize truncate">
               {analytics.mostFrequentCategory[0]}
@@ -487,84 +650,112 @@ export function Dashboard({ transactions, currencySymbol, timePeriod = 'thisMont
         <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
           <div className="flex items-center gap-1.5 text-muted-foreground mb-2">
             <Award className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
-            <span className="text-[10px] sm:text-xs uppercase tracking-wider">Biggest Expense</span>
+            <span className="text-[10px] sm:text-xs uppercase tracking-wider">
+              Biggest Expense
+            </span>
           </div>
           <div className="flex items-center justify-between gap-2">
             <p className="font-medium capitalize truncate text-sm sm:text-base flex-1">
-              {analytics.biggestExpense.reason || 'Unknown'}
+              {analytics.biggestExpense.reason || "Unknown"}
             </p>
             <p className="text-sm sm:text-lg font-bold font-mono text-expense flex-shrink-0">
-              {currencySymbol}{formatAmount(analytics.biggestExpense.amount)}
+              {currencySymbol}
+              {formatAmount(analytics.biggestExpense.amount)}
             </p>
           </div>
           <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
-            {format(new Date(analytics.biggestExpense.date), 'MMM d')} via {analytics.biggestExpense.paymentMode}
+            {format(new Date(analytics.biggestExpense.date), "MMM d")} via{" "}
+            {analytics.biggestExpense.paymentMode}
           </p>
         </div>
       )}
 
       {/* Best & Worst Day */}
-      {analytics.bestDay && analytics.worstDay && analytics.bestDay[0] !== analytics.worstDay[0] && (
-        <div className="grid grid-cols-2 gap-2 sm:gap-3">
-          <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
-            <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider mb-1">Best Day</p>
-            <p className="font-mono font-bold text-income text-sm sm:text-base truncate">
-              {currencySymbol}{formatAmount(analytics.bestDay[1])}
-            </p>
-            <p className="text-[10px] sm:text-xs text-muted-foreground">
-              {format(new Date(analytics.bestDay[0]), 'MMM d')}
-            </p>
+      {analytics.bestDay &&
+        analytics.worstDay &&
+        analytics.bestDay[0] !== analytics.worstDay[0] && (
+          <div className="grid grid-cols-2 gap-2 sm:gap-3">
+            <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
+              <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider mb-1">
+                Best Day
+              </p>
+              <p className="font-mono font-bold text-income text-sm sm:text-base truncate">
+                {currencySymbol}
+                {formatAmount(analytics.bestDay[1])}
+              </p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">
+                {format(new Date(analytics.bestDay[0]), "MMM d")}
+              </p>
+            </div>
+            <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
+              <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider mb-1">
+                Worst Day
+              </p>
+              <p className="font-mono font-bold text-expense text-sm sm:text-base truncate">
+                {currencySymbol}
+                {formatAmount(analytics.worstDay[1])}
+              </p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">
+                {format(new Date(analytics.worstDay[0]), "MMM d")}
+              </p>
+            </div>
           </div>
-          <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
-            <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider mb-1">Worst Day</p>
-            <p className="font-mono font-bold text-expense text-sm sm:text-base truncate">
-              {currencySymbol}{formatAmount(analytics.worstDay[1])}
-            </p>
-            <p className="text-[10px] sm:text-xs text-muted-foreground">
-              {format(new Date(analytics.worstDay[0]), 'MMM d')}
-            </p>
-          </div>
-        </div>
-      )}
+        )}
 
       {/* Daily Income vs Expense Chart */}
       <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
-        <h3 className="text-xs sm:text-sm font-medium text-muted-foreground mb-3 sm:mb-4">Last 7 Days</h3>
+        <h3 className="text-xs sm:text-sm font-medium text-muted-foreground mb-3 sm:mb-4">
+          Last 7 Days
+        </h3>
         <div className="h-32 sm:h-40">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={analytics.dailyData}>
-              <XAxis 
-                dataKey="day" 
-                axisLine={false} 
-                tickLine={false} 
-                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} 
+              <XAxis
+                dataKey="day"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }}
               />
               <YAxis hide />
               <Tooltip
                 contentStyle={{
-                  background: 'hsl(var(--card))',
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: '8px',
-                  fontSize: '11px',
+                  background: "hsl(var(--card))",
+                  border: "1px solid hsl(var(--border))",
+                  borderRadius: "8px",
+                  fontSize: "11px",
                 }}
                 formatter={(value: number, name: string) => [
                   `${currencySymbol}${formatAmount(value)}`,
-                  name === 'expense' ? 'Spent' : 'Earned'
+                  name === "expense" ? "Spent" : "Earned",
                 ]}
               />
-              <Bar dataKey="expense" fill="hsl(var(--expense))" radius={[4, 4, 0, 0]} name="expense" />
-              <Bar dataKey="income" fill="hsl(var(--income))" radius={[4, 4, 0, 0]} name="income" />
+              <Bar
+                dataKey="expense"
+                fill="hsl(var(--expense))"
+                radius={[4, 4, 0, 0]}
+                name="expense"
+              />
+              <Bar
+                dataKey="income"
+                fill="hsl(var(--income))"
+                radius={[4, 4, 0, 0]}
+                name="income"
+              />
             </BarChart>
           </ResponsiveContainer>
         </div>
         <div className="flex justify-center gap-3 sm:gap-4 mt-2">
           <div className="flex items-center gap-1">
             <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-expense" />
-            <span className="text-[10px] sm:text-xs text-muted-foreground">Expense</span>
+            <span className="text-[10px] sm:text-xs text-muted-foreground">
+              Expense
+            </span>
           </div>
           <div className="flex items-center gap-1">
             <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-income" />
-            <span className="text-[10px] sm:text-xs text-muted-foreground">Income</span>
+            <span className="text-[10px] sm:text-xs text-muted-foreground">
+              Income
+            </span>
           </div>
         </div>
       </div>
@@ -572,7 +763,9 @@ export function Dashboard({ transactions, currencySymbol, timePeriod = 'thisMont
       {/* Top Spending Categories */}
       {analytics.topCategories.length > 0 && (
         <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
-          <h3 className="text-xs sm:text-sm font-medium text-muted-foreground mb-3 sm:mb-4">Top Spending</h3>
+          <h3 className="text-xs sm:text-sm font-medium text-muted-foreground mb-3 sm:mb-4">
+            Top Spending
+          </h3>
           <div className="space-y-2.5 sm:space-y-3">
             {analytics.topCategories.map((cat, index) => {
               const maxValue = analytics.topCategories[0]?.value || 1;
@@ -580,17 +773,21 @@ export function Dashboard({ transactions, currencySymbol, timePeriod = 'thisMont
               return (
                 <div key={cat.name}>
                   <div className="flex items-center justify-between mb-1 gap-2">
-                    <span className="text-xs sm:text-sm font-medium capitalize truncate flex-1">{cat.name}</span>
+                    <span className="text-xs sm:text-sm font-medium capitalize truncate flex-1">
+                      {cat.name}
+                    </span>
                     <span className="font-mono text-xs sm:text-sm text-muted-foreground flex-shrink-0">
-                      {currencySymbol}{formatAmount(cat.value)}
+                      {currencySymbol}
+                      {formatAmount(cat.value)}
                     </span>
                   </div>
                   <div className="h-1.5 sm:h-2 bg-muted rounded-full overflow-hidden">
-                    <div 
+                    <div
                       className="h-full rounded-full transition-all duration-500"
-                      style={{ 
+                      style={{
                         width: `${percentage}%`,
-                        backgroundColor: categoryColors[index % categoryColors.length]
+                        backgroundColor:
+                          categoryColors[index % categoryColors.length],
                       }}
                     />
                   </div>
@@ -604,7 +801,9 @@ export function Dashboard({ transactions, currencySymbol, timePeriod = 'thisMont
       {/* Needs vs Wants Pie */}
       {pieData.length > 0 && (
         <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
-          <h3 className="text-xs sm:text-sm font-medium text-muted-foreground mb-3 sm:mb-4">Needs vs Wants</h3>
+          <h3 className="text-xs sm:text-sm font-medium text-muted-foreground mb-3 sm:mb-4">
+            Needs vs Wants
+          </h3>
           <div className="flex items-center gap-3 sm:gap-4">
             <div className="w-20 h-20 sm:w-28 sm:h-28 flex-shrink-0">
               <ResponsiveContainer width="100%" height="100%">
@@ -627,16 +826,22 @@ export function Dashboard({ transactions, currencySymbol, timePeriod = 'thisMont
             </div>
             <div className="flex-1 space-y-1.5 sm:space-y-2 min-w-0">
               {pieData.map((item) => (
-                <div key={item.name} className="flex items-center justify-between gap-2">
+                <div
+                  key={item.name}
+                  className="flex items-center justify-between gap-2"
+                >
                   <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-                    <span 
-                      className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full flex-shrink-0" 
-                      style={{ backgroundColor: item.color }} 
+                    <span
+                      className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: item.color }}
                     />
-                    <span className="text-xs sm:text-sm truncate">{item.name}</span>
+                    <span className="text-xs sm:text-sm truncate">
+                      {item.name}
+                    </span>
                   </div>
                   <span className="font-mono text-xs sm:text-sm flex-shrink-0">
-                    {currencySymbol}{formatAmount(item.value)}
+                    {currencySymbol}
+                    {formatAmount(item.value)}
                   </span>
                 </div>
               ))}
@@ -648,31 +853,39 @@ export function Dashboard({ transactions, currencySymbol, timePeriod = 'thisMont
       {/* By Payment Mode */}
       {analytics.byMode.length > 0 && (
         <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
-          <h3 className="text-xs sm:text-sm font-medium text-muted-foreground mb-3 sm:mb-4">By Payment Mode</h3>
+          <h3 className="text-xs sm:text-sm font-medium text-muted-foreground mb-3 sm:mb-4">
+            By Payment Mode
+          </h3>
           <div className="h-28 sm:h-36">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={analytics.byMode} layout="vertical">
                 <XAxis type="number" hide />
-                <YAxis 
-                  type="category" 
-                  dataKey="name" 
-                  axisLine={false} 
+                <YAxis
+                  type="category"
+                  dataKey="name"
+                  axisLine={false}
                   tickLine={false}
-                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
+                  tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }}
                   width={60}
                 />
                 <Tooltip
                   contentStyle={{
-                    background: 'hsl(var(--card))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px',
-                    fontSize: '11px',
+                    background: "hsl(var(--card))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: "8px",
+                    fontSize: "11px",
                   }}
-                  formatter={(value: number) => [`${currencySymbol}${formatAmount(value)}`, 'Spent']}
+                  formatter={(value: number) => [
+                    `${currencySymbol}${formatAmount(value)}`,
+                    "Spent",
+                  ]}
                 />
                 <Bar dataKey="value" radius={[0, 4, 4, 0]}>
                   {analytics.byMode.map((_, index) => (
-                    <Cell key={`cell-${index}`} fill={modeColors[index % modeColors.length]} />
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={modeColors[index % modeColors.length]}
+                    />
                   ))}
                 </Bar>
               </BarChart>
@@ -683,56 +896,61 @@ export function Dashboard({ transactions, currencySymbol, timePeriod = 'thisMont
 
       {/* Monthly Trend with Savings */}
       <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
-        <h3 className="text-xs sm:text-sm font-medium text-muted-foreground mb-3 sm:mb-4">6 Month Overview</h3>
+        <h3 className="text-xs sm:text-sm font-medium text-muted-foreground mb-3 sm:mb-4">
+          6 Month Overview
+        </h3>
         <div className="h-36 sm:h-44">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={analytics.monthlyTrend}>
-              <XAxis 
-                dataKey="month" 
-                axisLine={false} 
+              <XAxis
+                dataKey="month"
+                axisLine={false}
                 tickLine={false}
-                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
+                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }}
               />
               <YAxis hide />
               <Tooltip
                 contentStyle={{
-                  background: 'hsl(var(--card))',
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: '8px',
-                  fontSize: '11px',
+                  background: "hsl(var(--card))",
+                  border: "1px solid hsl(var(--border))",
+                  borderRadius: "8px",
+                  fontSize: "11px",
                 }}
                 formatter={(value: number, name: string) => {
                   const labels: Record<string, string> = {
-                    income: 'Income',
-                    expense: 'Expense',
-                    savings: 'Savings',
+                    income: "Income",
+                    expense: "Expense",
+                    savings: "Savings",
                   };
-                  return [`${currencySymbol}${formatAmount(value)}`, labels[name] || name];
+                  return [
+                    `${currencySymbol}${formatAmount(value)}`,
+                    labels[name] || name,
+                  ];
                 }}
               />
-              <Area 
-                type="monotone" 
-                dataKey="income" 
-                stroke="hsl(var(--income))" 
+              <Area
+                type="monotone"
+                dataKey="income"
+                stroke="hsl(var(--income))"
                 fill="hsl(var(--income))"
                 fillOpacity={0.15}
                 strokeWidth={2}
               />
-              <Area 
-                type="monotone" 
-                dataKey="expense" 
-                stroke="hsl(var(--expense))" 
+              <Area
+                type="monotone"
+                dataKey="expense"
+                stroke="hsl(var(--expense))"
                 fill="hsl(var(--expense))"
                 fillOpacity={0.15}
                 strokeWidth={2}
               />
-              <Line 
-                type="monotone" 
-                dataKey="savings" 
-                stroke="hsl(var(--primary))" 
+              <Line
+                type="monotone"
+                dataKey="savings"
+                stroke="hsl(var(--primary))"
                 strokeWidth={2}
                 strokeDasharray="4 4"
-                dot={{ fill: 'hsl(var(--primary))', strokeWidth: 0, r: 3 }}
+                dot={{ fill: "hsl(var(--primary))", strokeWidth: 0, r: 3 }}
               />
             </AreaChart>
           </ResponsiveContainer>
@@ -740,36 +958,50 @@ export function Dashboard({ transactions, currencySymbol, timePeriod = 'thisMont
         <div className="flex justify-center gap-3 sm:gap-4 mt-2">
           <div className="flex items-center gap-1">
             <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-income" />
-            <span className="text-[10px] sm:text-xs text-muted-foreground">Income</span>
+            <span className="text-[10px] sm:text-xs text-muted-foreground">
+              Income
+            </span>
           </div>
           <div className="flex items-center gap-1">
             <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-expense" />
-            <span className="text-[10px] sm:text-xs text-muted-foreground">Expense</span>
+            <span className="text-[10px] sm:text-xs text-muted-foreground">
+              Expense
+            </span>
           </div>
           <div className="flex items-center gap-1">
             <span className="w-3 sm:w-4 h-0 border-t-2 border-dashed border-primary" />
-            <span className="text-[10px] sm:text-xs text-muted-foreground">Savings</span>
+            <span className="text-[10px] sm:text-xs text-muted-foreground">
+              Savings
+            </span>
           </div>
         </div>
       </div>
 
       {/* Last Month Comparison */}
       <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
-        <h3 className="text-xs sm:text-sm font-medium text-muted-foreground mb-2 sm:mb-3">Last Month</h3>
+        <h3 className="text-xs sm:text-sm font-medium text-muted-foreground mb-2 sm:mb-3">
+          Last Month
+        </h3>
         <div className="flex items-center justify-between gap-2">
           <div className="min-w-0">
             <p className="text-sm sm:text-lg font-bold font-mono text-foreground truncate">
-              {currencySymbol}{formatAmount(analytics.lastMonthTotal)}
+              {currencySymbol}
+              {formatAmount(analytics.lastMonthTotal)}
             </p>
-            <p className="text-[10px] sm:text-xs text-muted-foreground">Total spent</p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground">
+              Total spent
+            </p>
           </div>
-          <div className={cn(
-            "px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium flex-shrink-0",
-            analytics.percentChange <= 0 
-              ? "bg-income/15 text-income" 
-              : "bg-expense/15 text-expense"
-          )}>
-            {analytics.percentChange <= 0 ? '↓' : '↑'} {Math.abs(analytics.percentChange).toFixed(0)}%
+          <div
+            className={cn(
+              "px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium flex-shrink-0",
+              analytics.percentChange <= 0
+                ? "bg-income/15 text-income"
+                : "bg-expense/15 text-expense"
+            )}
+          >
+            {analytics.percentChange <= 0 ? "↓" : "↑"}{" "}
+            {Math.abs(analytics.percentChange).toFixed(0)}%
           </div>
         </div>
       </div>

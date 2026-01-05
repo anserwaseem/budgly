@@ -1,4 +1,4 @@
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw } from "lucide-react";
 
 interface UpdatePromptProps {
   onUpdate: () => void;
@@ -16,7 +16,8 @@ export function UpdatePrompt({ onUpdate, onDismiss }: UpdatePromptProps) {
           <div className="flex-1">
             <h3 className="font-semibold text-sm">New Update Available!</h3>
             <p className="text-xs text-muted-foreground mt-0.5">
-              A new version of Bujit is ready. Update now for the latest features.
+              A new version of Bujit is ready. Update now for the latest
+              features.
             </p>
           </div>
         </div>

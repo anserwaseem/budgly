@@ -1,8 +1,8 @@
-import { Sun, Moon, Settings } from 'lucide-react';
-import { Logo } from './Logo';
+import { Sun, Moon, Settings } from "lucide-react";
+import { Logo } from "./Logo";
 
 interface HeaderProps {
-  theme: 'light' | 'dark';
+  theme: "light" | "dark";
   onToggleTheme: () => void;
   onOpenSettings: () => void;
 }
@@ -28,7 +28,7 @@ export function Header({ theme, onToggleTheme, onOpenSettings }: HeaderProps) {
           className="p-2 rounded-lg bg-card hover:bg-muted transition-colors"
           aria-label="Toggle theme"
         >
-          {theme === 'dark' ? (
+          {theme === "dark" ? (
             <Sun className="w-5 h-5 text-foreground" />
           ) : (
             <Moon className="w-5 h-5 text-foreground" />

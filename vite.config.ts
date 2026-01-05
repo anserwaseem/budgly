@@ -18,17 +18,28 @@ export default defineConfig(({ mode }) => ({
       manifest: {
         name: "Bujit — Simple Expense Tracking",
         short_name: "Bujit",
-        description: "Stupidly simple budgeting. Track expenses like taking notes.",
+        description:
+          "Stupidly simple budgeting. Track expenses like taking notes.",
         theme_color: "#39C692",
         background_color: "#1a1a1a",
         display: "standalone",
         icons: [
-          { src: "/logo.svg", sizes: "512x512", type: "image/svg+xml", purpose: "any" },
-          { src: "/logo.svg", sizes: "512x512", type: "image/svg+xml", purpose: "maskable" },
+          {
+            src: "/logo.svg",
+            sizes: "512x512",
+            type: "image/svg+xml",
+            purpose: "any",
+          },
+          {
+            src: "/logo.svg",
+            sizes: "512x512",
+            type: "image/svg+xml",
+            purpose: "maskable",
+          },
         ],
       },
       workbox: {
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+        globPatterns: ["**/*.{js,css,html,png,svg,woff2}"],
       },
     }),
   ].filter(Boolean),

@@ -1,21 +1,21 @@
-import { Transaction, PaymentMode, AppSettings } from './types';
+import { Transaction, PaymentMode, AppSettings } from "./types";
 
-const TRANSACTIONS_KEY = 'bujit_transactions';
-const MODES_KEY = 'bujit_payment_modes';
-const THEME_KEY = 'bujit_theme';
-const SETTINGS_KEY = 'bujit_settings';
+const TRANSACTIONS_KEY = "bujit_transactions";
+const MODES_KEY = "bujit_payment_modes";
+const THEME_KEY = "bujit_theme";
+const SETTINGS_KEY = "bujit_settings";
 
 const DEFAULT_MODES: PaymentMode[] = [
-  { id: '1', name: 'Debit Card', shorthand: 'D' },
-  { id: '2', name: 'Cash', shorthand: 'C' },
-  { id: '3', name: 'Credit Card', shorthand: 'CC' },
-  { id: '4', name: 'JazzCash', shorthand: 'JC' },
-  { id: '5', name: 'EasyPaisa', shorthand: 'EP' },
+  { id: "1", name: "Debit Card", shorthand: "D" },
+  { id: "2", name: "Cash", shorthand: "C" },
+  { id: "3", name: "Credit Card", shorthand: "CC" },
+  { id: "4", name: "JazzCash", shorthand: "JC" },
+  { id: "5", name: "EasyPaisa", shorthand: "EP" },
 ];
 
 const DEFAULT_SETTINGS: AppSettings = {
-  currency: 'PKR',
-  currencySymbol: 'Rs.',
+  currency: "PKR",
+  currencySymbol: "Rs.",
 };
 
 export function getTransactions(): Transaction[] {
@@ -40,14 +40,19 @@ export function addTransaction(transaction: Transaction): Transaction[] {
 
 export function deleteTransaction(id: string): Transaction[] {
   const transactions = getTransactions();
-  const updated = transactions.filter(t => t.id !== id);
+  const updated = transactions.filter((t) => t.id !== id);
   saveTransactions(updated);
   return updated;
 }
 
-export function updateTransaction(id: string, updates: Partial<Transaction>): Transaction[] {
+export function updateTransaction(
+  id: string,
+  updates: Partial<Transaction>
+): Transaction[] {
   const transactions = getTransactions();
-  const updated = transactions.map(t => (t.id === id ? { ...t, ...updates } : t));
+  const updated = transactions.map((t) =>
+    t.id === id ? { ...t, ...updates } : t
+  );
   saveTransactions(updated);
   return updated;
 }
@@ -65,23 +70,25 @@ export function savePaymentModes(modes: PaymentMode[]): void {
   localStorage.setItem(MODES_KEY, JSON.stringify(modes));
 }
 
-export function getTheme(): 'light' | 'dark' {
+export function getTheme(): "light" | "dark" {
   try {
     const theme = localStorage.getItem(THEME_KEY);
-    return theme === 'light' ? 'light' : 'dark';
+    return theme === "light" ? "light" : "dark";
   } catch {
-    return 'dark';
+    return "dark";
   }
 }
 
-export function saveTheme(theme: 'light' | 'dark'): void {
+export function saveTheme(theme: "light" | "dark"): void {
   localStorage.setItem(THEME_KEY, theme);
 }
 
 export function getSettings(): AppSettings {
   try {
     const data = localStorage.getItem(SETTINGS_KEY);
-    return data ? { ...DEFAULT_SETTINGS, ...JSON.parse(data) } : DEFAULT_SETTINGS;
+    return data
+      ? { ...DEFAULT_SETTINGS, ...JSON.parse(data) }
+      : DEFAULT_SETTINGS;
   } catch {
     return DEFAULT_SETTINGS;
   }

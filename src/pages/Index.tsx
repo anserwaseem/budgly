@@ -1,16 +1,16 @@
-import { useState, useMemo, useCallback } from 'react';
-import { useBudgly } from '@/hooks/useBudgly';
-import { Header } from '@/components/Header';
-import { StatsBar } from '@/components/StatsBar';
-import { TransactionInput } from '@/components/TransactionInput';
-import { TransactionList } from '@/components/TransactionList';
-import { Dashboard } from '@/components/Dashboard';
-import { SettingsDialog } from '@/components/SettingsDialog';
-import { EditTransactionDialog } from '@/components/EditTransactionDialog';
-import { PaymentMode } from '@/lib/types';
-import { BarChart3, List } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
+import { useState, useMemo, useCallback } from "react";
+import { useBudgly } from "@/hooks/useBudgly";
+import { Header } from "@/components/Header";
+import { StatsBar } from "@/components/StatsBar";
+import { TransactionInput } from "@/components/TransactionInput";
+import { TransactionList } from "@/components/TransactionList";
+import { Dashboard } from "@/components/Dashboard";
+import { SettingsDialog } from "@/components/SettingsDialog";
+import { EditTransactionDialog } from "@/components/EditTransactionDialog";
+import { PaymentMode } from "@/lib/types";
+import { BarChart3, List } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 
 const Index = () => {
   const {
@@ -32,14 +32,20 @@ const Index = () => {
     updateSettings,
   } = useBudgly();
 
-  const [activeTab, setActiveTab] = useState<'transactions' | 'dashboard'>('transactions');
+  const [activeTab, setActiveTab] = useState<"transactions" | "dashboard">(
+    "transactions"
+  );
   const [showSettings, setShowSettings] = useState(false);
-  const [editingTransaction, setEditingTransaction] = useState<typeof transactions[0] | null>(null);
+  const [editingTransaction, setEditingTransaction] = useState<
+    (typeof transactions)[0] | null
+  >(null);
 
   // Today's transaction count
   const todayCount = useMemo(() => {
-    const today = format(new Date(), 'yyyy-MM-dd');
-    return transactions.filter(t => format(new Date(t.date), 'yyyy-MM-dd') === today).length;
+    const today = format(new Date(), "yyyy-MM-dd");
+    return transactions.filter(
+      (t) => format(new Date(t.date), "yyyy-MM-dd") === today
+    ).length;
   }, [transactions]);
 
   // Last transaction for repeat feature
@@ -64,19 +70,19 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-lg mx-auto px-4 pb-24">
-        <Header 
-          theme={theme} 
-          onToggleTheme={toggleTheme} 
-          onOpenSettings={() => setShowSettings(true)} 
+        <Header
+          theme={theme}
+          onToggleTheme={toggleTheme}
+          onOpenSettings={() => setShowSettings(true)}
         />
 
         {/* Tab Navigation */}
         <div className="flex gap-1 p-1 bg-muted rounded-lg mb-6">
           <button
-            onClick={() => setActiveTab('transactions')}
+            onClick={() => setActiveTab("transactions")}
             className={cn(
               "flex-1 flex items-center justify-center gap-2 py-2 rounded-md text-sm font-medium transition-colors",
-              activeTab === 'transactions'
+              activeTab === "transactions"
                 ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
             )}
@@ -85,10 +91,10 @@ const Index = () => {
             Transactions
           </button>
           <button
-            onClick={() => setActiveTab('dashboard')}
+            onClick={() => setActiveTab("dashboard")}
             className={cn(
               "flex-1 flex items-center justify-center gap-2 py-2 rounded-md text-sm font-medium transition-colors",
-              activeTab === 'dashboard'
+              activeTab === "dashboard"
                 ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
             )}
@@ -98,20 +104,20 @@ const Index = () => {
           </button>
         </div>
 
-        {activeTab === 'transactions' ? (
+        {activeTab === "transactions" ? (
           <>
             <section className="py-6 border-b border-border">
-              <StatsBar 
-                stats={stats} 
-                currencySymbol={settings.currencySymbol} 
+              <StatsBar
+                stats={stats}
+                currencySymbol={settings.currencySymbol}
                 timePeriod={timePeriod}
                 onTimePeriodChange={setTimePeriod}
               />
             </section>
 
             <section className="py-6 border-b border-border">
-              <TransactionInput 
-                paymentModes={paymentModes} 
+              <TransactionInput
+                paymentModes={paymentModes}
                 currencySymbol={settings.currencySymbol}
                 quickAddSuggestions={quickAddSuggestions}
                 transactions={transactions}
@@ -143,9 +149,9 @@ const Index = () => {
             </section>
           </>
         ) : (
-          <Dashboard 
-            transactions={transactions} 
-            currencySymbol={settings.currencySymbol} 
+          <Dashboard
+            transactions={transactions}
+            currencySymbol={settings.currencySymbol}
             timePeriod={timePeriod}
             onTimePeriodChange={setTimePeriod}
           />
