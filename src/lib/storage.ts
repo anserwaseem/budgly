@@ -21,14 +21,50 @@ const DEFAULT_SETTINGS: AppSettings = {
 export function getTransactions(): Transaction[] {
   try {
     const data = localStorage.getItem(TRANSACTIONS_KEY);
-    return data ? JSON.parse(data) : [];
-  } catch {
+    if (!data) return [];
+    
+    const parsed = JSON.parse(data);
+    // validate it's an array
+    if (!Array.isArray(parsed)) {
+      console.warn("Invalid transactions data, resetting to empty array");
+      saveTransactions([]);
+      return [];
+    }
+    
+    // basic validation - filter out invalid entries
+    return parsed.filter(
+      (t): t is Transaction =>
+        t &&
+        typeof t === "object" &&
+        typeof t.id === "string" &&
+        typeof t.amount === "number" &&
+        typeof t.date === "string"
+    );
+  } catch (error) {
+    console.error("Error loading transactions:", error);
+    // if corrupted, clear and return empty
+    try {
+      localStorage.removeItem(TRANSACTIONS_KEY);
+    } catch {
+      // ignore cleanup errors
+    }
     return [];
   }
 }
 
 export function saveTransactions(transactions: Transaction[]): void {
-  localStorage.setItem(TRANSACTIONS_KEY, JSON.stringify(transactions));
+  try {
+    localStorage.setItem(TRANSACTIONS_KEY, JSON.stringify(transactions));
+  } catch (error) {
+    // handle quota exceeded or other storage errors
+    if (error instanceof DOMException && error.name === "QuotaExceededError") {
+      console.error("Storage quota exceeded. Consider exporting old data.");
+      throw new Error(
+        "Storage is full. Please export and delete some old transactions."
+      );
+    }
+    throw error;
+  }
 }
 
 export function addTransaction(transaction: Transaction): Transaction[] {
