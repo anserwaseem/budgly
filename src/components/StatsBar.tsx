@@ -16,7 +16,7 @@ interface StatsBarProps {
 }
 
 export function StatsBar({ stats, currencySymbol }: StatsBarProps) {
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const needsPercent =
     stats.totalExpenses > 0

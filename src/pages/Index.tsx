@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, Activity } from "react";
 import { useBudgly } from "@/hooks/useBudgly";
 import { Header } from "@/components/Header";
 import { StatsBar } from "@/components/StatsBar";
@@ -8,7 +8,7 @@ import { Dashboard } from "@/components/Dashboard";
 import { SettingsDialog } from "@/components/SettingsDialog";
 import { EditTransactionDialog } from "@/components/EditTransactionDialog";
 import { PaymentMode } from "@/lib/types";
-import { BarChart3, List, Calendar, ChevronDown } from "lucide-react";
+import { BarChart3, List, Calendar } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -145,55 +145,54 @@ const Index = () => {
           </Select>
         </div>
 
-        {activeTab === "transactions" ? (
-          <>
-            <section>
-              <StatsBar
-                stats={stats}
-                currencySymbol={settings.currencySymbol}
-              />
-            </section>
+        {/* Transactions view with Activity for state preservation */}
+        <Activity mode={activeTab === "transactions" ? "visible" : "hidden"}>
+          <section>
+            <StatsBar stats={stats} currencySymbol={settings.currencySymbol} />
+          </section>
 
-            <section className="py-6">
-              <TransactionInput
-                paymentModes={paymentModes}
-                currencySymbol={settings.currencySymbol}
-                quickAddSuggestions={quickAddSuggestions}
-                transactions={transactions}
-                todayCount={todayCount}
-                onAdd={addTransaction}
-                onRepeatLast={handleRepeatLast}
-                lastTransaction={lastTransaction}
-              />
-            </section>
+          <section className="py-6">
+            <TransactionInput
+              paymentModes={paymentModes}
+              currencySymbol={settings.currencySymbol}
+              quickAddSuggestions={quickAddSuggestions}
+              transactions={transactions}
+              todayCount={todayCount}
+              onAdd={addTransaction}
+              onRepeatLast={handleRepeatLast}
+              lastTransaction={lastTransaction}
+            />
+          </section>
 
-            <section className="pb-6">
-              <TransactionList
-                groupedTransactions={groupedTransactions}
-                currencySymbol={settings.currencySymbol}
-                onDelete={deleteTransaction}
-                onEdit={setEditingTransaction}
-                onUpdateNecessity={updateNecessity}
-                onDuplicate={(t) => {
-                  return addTransaction({
-                    date: new Date().toISOString(),
-                    reason: t.reason,
-                    amount: t.amount,
-                    paymentMode: t.paymentMode,
-                    type: t.type,
-                    necessity: t.necessity,
-                  });
-                }}
-              />
-            </section>
-          </>
-        ) : (
+          <section className="pb-6">
+            <TransactionList
+              groupedTransactions={groupedTransactions}
+              currencySymbol={settings.currencySymbol}
+              onDelete={deleteTransaction}
+              onEdit={setEditingTransaction}
+              onUpdateNecessity={updateNecessity}
+              onDuplicate={(t) => {
+                return addTransaction({
+                  date: new Date().toISOString(),
+                  reason: t.reason,
+                  amount: t.amount,
+                  paymentMode: t.paymentMode,
+                  type: t.type,
+                  necessity: t.necessity,
+                });
+              }}
+            />
+          </section>
+        </Activity>
+
+        {/* Dashboard view with Activity for state preservation */}
+        <Activity mode={activeTab === "dashboard" ? "visible" : "hidden"}>
           <Dashboard
             transactions={transactions}
             currencySymbol={settings.currencySymbol}
             timePeriod={timePeriod}
           />
-        )}
+        </Activity>
       </div>
 
       {/* Dialogs */}
