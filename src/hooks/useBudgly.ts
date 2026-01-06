@@ -59,26 +59,105 @@ function getDateRangeForPeriod(period: TimePeriod): {
   }
 }
 
+const DEFAULT_MODES: PaymentMode[] = [
+  { id: "1", name: "Debit Card", shorthand: "D" },
+  { id: "2", name: "Cash", shorthand: "C" },
+  { id: "3", name: "Credit Card", shorthand: "CC" },
+];
+
+const DEFAULT_SETTINGS: AppSettings = {
+  currency: "PKR",
+  currencySymbol: "Rs.",
+};
+
+// initialize state with localStorage values immediately (synchronous)
+// this prevents delay from useEffect
+// matches behavior of getTransactions() from storage.ts
+function getInitialTransactions(): Transaction[] {
+  try {
+    const data = localStorage.getItem("bujit_transactions");
+    if (!data) return [];
+
+    const parsed = JSON.parse(data);
+    // validate it's an array
+    if (!Array.isArray(parsed)) {
+      console.warn("Invalid transactions data, resetting to empty array");
+      try {
+        localStorage.setItem("bujit_transactions", JSON.stringify([]));
+      } catch {
+        // ignore cleanup errors
+      }
+      return [];
+    }
+
+    // basic validation - filter out invalid entries
+    return parsed.filter(
+      (t): t is Transaction =>
+        t &&
+        typeof t === "object" &&
+        typeof t.id === "string" &&
+        typeof t.amount === "number" &&
+        typeof t.date === "string"
+    );
+  } catch (error) {
+    console.error("Error loading transactions:", error);
+    // if corrupted, clear and return empty
+    try {
+      localStorage.removeItem("bujit_transactions");
+    } catch {
+      // ignore cleanup errors
+    }
+    return [];
+  }
+}
+
+function getInitialPaymentModes(): PaymentMode[] {
+  try {
+    const data = localStorage.getItem("bujit_payment_modes");
+    return data ? JSON.parse(data) : DEFAULT_MODES;
+  } catch {
+    return DEFAULT_MODES;
+  }
+}
+
+function getInitialTheme(): "light" | "dark" {
+  try {
+    const theme = localStorage.getItem("bujit_theme");
+    return theme === "light" ? "light" : "dark";
+  } catch {
+    return "dark";
+  }
+}
+
+function getInitialSettings(): AppSettings {
+  try {
+    const data = localStorage.getItem("bujit_settings");
+    return data
+      ? { ...DEFAULT_SETTINGS, ...JSON.parse(data) }
+      : DEFAULT_SETTINGS;
+  } catch {
+    return DEFAULT_SETTINGS;
+  }
+}
+
 export function useBudgly() {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [paymentModes, setPaymentModes] = useState<PaymentMode[]>([]);
-  const [theme, setTheme] = useState<"light" | "dark">("dark");
-  const [settings, setSettings] = useState<AppSettings>({
-    currency: "PKR",
-    currencySymbol: "Rs.",
-  });
+  // initialize state synchronously with localStorage values
+  // this prevents delay from useEffect and ensures immediate render
+  const [transactions, setTransactions] = useState<Transaction[]>(
+    getInitialTransactions
+  );
+  const [paymentModes, setPaymentModes] = useState<PaymentMode[]>(
+    getInitialPaymentModes
+  );
+  const [theme, setTheme] = useState<"light" | "dark">(getInitialTheme);
+  const [settings, setSettings] = useState<AppSettings>(getInitialSettings);
 
   const [timePeriod, setTimePeriod] = useState<TimePeriod>("thisMonth");
 
-  // Load data on mount
+  // ensure theme class is set (redundant but safe)
   useEffect(() => {
-    setTransactions(getTransactions());
-    setPaymentModes(getPaymentModes());
-    setSettings(getSettings());
-    const savedTheme = getTheme();
-    setTheme(savedTheme);
-    document.documentElement.classList.toggle("dark", savedTheme === "dark");
-  }, []);
+    document.documentElement.classList.toggle("dark", theme === "dark");
+  }, [theme]);
 
   const toggleTheme = useCallback(() => {
     const newTheme = theme === "dark" ? "light" : "dark";

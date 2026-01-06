@@ -19,6 +19,8 @@
     <link rel="apple-touch-icon" href="/logo.svg" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="preload" href="/logo.svg" as="image" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://bujit.lovable.app" />
@@ -38,8 +40,27 @@
     />
   </head>
 
-  <body>
+  <body
+    style="
+      background-color: hsl(220, 20%, 8%);
+      color: hsl(40, 15%, 92%);
+      margin: 0;
+      padding: 0;
+    "
+  >
     <div id="root"></div>
+    <script>
+      // set theme immediately before React renders to prevent flash
+      (function () {
+        try {
+          const theme = localStorage.getItem("bujit_theme") || "dark";
+          document.documentElement.classList.toggle("dark", theme === "dark");
+          document.documentElement.classList.toggle("light", theme === "light");
+        } catch (e) {
+          // ignore localStorage errors
+        }
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
