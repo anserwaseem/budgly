@@ -38,6 +38,7 @@ export function useSpeechRecognition({
   const [isListening, setIsListening] = useState(false);
   const [isSupported, setIsSupported] = useState(false);
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
+  const isStoppingIntentionallyRef = useRef(false);
 
   // Use refs for callbacks to avoid recreating recognition on every render
   const onResultRef = useRef(onResult);
@@ -81,11 +82,21 @@ export function useSpeechRecognition({
       console.log("Speech recognized:", transcript);
       haptic("success");
       onResultRef.current?.(transcript);
+      // explicitly stop recognition after getting result
+      recognition.stop();
       setIsListening(false);
     };
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
       console.error("Speech recognition error:", event.error);
+
+      // ignore errors when stopping intentionally (like "aborted")
+      if (isStoppingIntentionallyRef.current) {
+        isStoppingIntentionallyRef.current = false;
+        setIsListening(false);
+        return;
+      }
+
       haptic("error");
       onErrorRef.current?.(event.error);
       setIsListening(false);
@@ -130,6 +141,8 @@ export function useSpeechRecognition({
   const stopListening = useCallback(() => {
     if (!recognitionRef.current) return;
 
+    // mark as intentional stop to avoid error toast
+    isStoppingIntentionallyRef.current = true;
     recognitionRef.current.stop();
     setIsListening(false);
   }, []);

@@ -448,4 +448,84 @@ describe("useSpeechRecognition", () => {
       onError.mockClear();
     }
   });
+
+  it("should automatically stop recognition after receiving a result", () => {
+    const onResult = vi.fn();
+    const { result } = renderHook(() => useSpeechRecognition({ onResult }));
+
+    act(() => {
+      result.current.startListening();
+    });
+
+    expect(result.current.isListening).toBe(true);
+    expect(mockRecognition.stop).not.toHaveBeenCalled();
+
+    // simulate result event
+    const mockEvent = new MockSpeechRecognitionEvent([
+      [{ transcript: "grocery 100" }],
+    ]);
+
+    act(() => {
+      mockRecognition.onresult?.(mockEvent);
+    });
+
+    // verify recognition.stop() was called automatically
+    expect(mockRecognition.stop).toHaveBeenCalled();
+    expect(onResult).toHaveBeenCalledWith("grocery 100");
+    expect(result.current.isListening).toBe(false);
+  });
+
+  it("should not trigger error callback when stopping intentionally", () => {
+    const onError = vi.fn();
+    const { result } = renderHook(() => useSpeechRecognition({ onError }));
+
+    act(() => {
+      result.current.startListening();
+    });
+
+    expect(result.current.isListening).toBe(true);
+
+    // stop listening intentionally
+    act(() => {
+      result.current.stopListening();
+    });
+
+    expect(mockRecognition.stop).toHaveBeenCalled();
+    expect(result.current.isListening).toBe(false);
+
+    // simulate error event that might occur when stopping (like "aborted")
+    const mockErrorEvent = new MockSpeechRecognitionErrorEvent("aborted");
+
+    act(() => {
+      mockRecognition.onerror?.(mockErrorEvent);
+    });
+
+    // error callback should NOT be called for intentional stops
+    expect(onError).not.toHaveBeenCalled();
+    expect(utils.haptic).not.toHaveBeenCalledWith("error");
+    expect(result.current.isListening).toBe(false);
+  });
+
+  it("should trigger error callback for non-intentional errors", () => {
+    const onError = vi.fn();
+    const { result } = renderHook(() => useSpeechRecognition({ onError }));
+
+    act(() => {
+      result.current.startListening();
+    });
+
+    expect(result.current.isListening).toBe(true);
+
+    // simulate error event without intentional stop
+    const mockErrorEvent = new MockSpeechRecognitionErrorEvent("no-speech");
+
+    act(() => {
+      mockRecognition.onerror?.(mockErrorEvent);
+    });
+
+    // error callback SHOULD be called for non-intentional errors
+    expect(onError).toHaveBeenCalledWith("no-speech");
+    expect(utils.haptic).toHaveBeenCalledWith("error");
+    expect(result.current.isListening).toBe(false);
+  });
 });
