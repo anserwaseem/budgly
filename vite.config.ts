@@ -31,10 +31,40 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: "prompt",
-      includeAssets: ["logo.svg"],
+      includeAssets: ["logo.svg", "icon-192x192.png", "icon-512x512.png"],
       manifest: getPwaManifest(),
       workbox: {
         globPatterns: ["**/*.{js,css,html,png,svg,woff2}"],
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "google-fonts-cache",
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+            },
+          },
+          {
+            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "gstatic-fonts-cache",
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+            },
+          },
+        ],
       },
     }),
   ].filter(Boolean),
@@ -132,15 +162,6 @@ function getChunkName(id: string): string | undefined {
 }
 
 // pwa manifest configuration
-function createPwaIcons(sizes: string[], purpose: "any" | "maskable" = "any") {
-  return sizes.map((size) => ({
-    src: "/logo.svg",
-    sizes: size,
-    type: "image/svg+xml",
-    purpose,
-  }));
-}
-
 function getPwaManifest() {
   return {
     name: "Bujit — Simple Expense Tracking",
@@ -149,9 +170,49 @@ function getPwaManifest() {
     theme_color: "#39C692",
     background_color: "#1a1a1a",
     display: "standalone" as const,
+    orientation: "portrait" as const,
+    categories: ["finance", "productivity"],
     icons: [
-      ...createPwaIcons(["192x192", "384x384", "512x512"], "any"),
-      ...createPwaIcons(["192x192", "512x512"], "maskable"),
+      {
+        src: "/icon-192x192.png",
+        sizes: "192x192",
+        type: "image/png",
+        purpose: "any",
+      },
+      {
+        src: "/icon-512x512.png",
+        sizes: "512x512",
+        type: "image/png",
+        purpose: "any",
+      },
+      {
+        src: "/icon-192x192.png",
+        sizes: "192x192",
+        type: "image/png",
+        purpose: "maskable",
+      },
+      {
+        src: "/icon-512x512.png",
+        sizes: "512x512",
+        type: "image/png",
+        purpose: "maskable",
+      },
+    ],
+    screenshots: [
+      {
+        src: "/screenshots/desktop-home.png",
+        sizes: "2560x1440",
+        type: "image/png",
+        form_factor: "wide" as const,
+        label: "Bujit desktop home screen",
+      },
+      {
+        src: "/screenshots/mobile-home.png",
+        sizes: "1170x2532",
+        type: "image/png",
+        form_factor: "narrow" as const,
+        label: "Bujit mobile home screen",
+      },
     ],
   };
 }
