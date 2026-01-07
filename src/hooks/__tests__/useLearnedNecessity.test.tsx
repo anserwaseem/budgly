@@ -222,9 +222,7 @@ describe("useLearnedNecessity", () => {
     });
 
     it("should update existing learning data", () => {
-      const transactions: Transaction[] = [
-        createTransaction("coffee", "need"),
-      ];
+      const transactions: Transaction[] = [createTransaction("coffee", "need")];
 
       const { result } = renderHook(() => useLearnedNecessity(transactions));
 
@@ -359,4 +357,3 @@ describe("useLearnedNecessity", () => {
     });
   });
 });
-

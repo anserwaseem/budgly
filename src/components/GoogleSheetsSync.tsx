@@ -144,7 +144,7 @@ export function GoogleSheetsSync({ transactions }: GoogleSheetsSyncProps) {
                 <li>
                   <strong>Use Existing Sheet:</strong> Paste your Google Sheet
                   URL (e.g.,{" "}
-                  <code className="bg-background px-1 rounded">
+                  <code className="bg-background px-1 rounded break-words">
                     https://docs.google.com/spreadsheets/d/SHEET_ID/edit
                   </code>
                   )
@@ -299,7 +299,7 @@ export function GoogleSheetsSync({ transactions }: GoogleSheetsSyncProps) {
               />
               <p className="text-xs text-muted-foreground">
                 Example:{" "}
-                <code className="bg-background px-1 rounded">
+                <code className="bg-background px-1 rounded break-words">
                   https://docs.google.com/spreadsheets/d/SHEET_ID/edit
                 </code>
               </p>

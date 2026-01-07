@@ -401,7 +401,6 @@ export function Dashboard({
 
   return (
     <div className="space-y-4 animate-fade-in">
-
       {/* Quick Stats Row */}
       <div className="grid grid-cols-2 gap-2 sm:gap-3">
         <div className="bg-card border border-border rounded-xl p-3 sm:p-4">

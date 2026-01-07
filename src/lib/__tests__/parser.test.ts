@@ -154,7 +154,7 @@ describe("parser", () => {
 
     it("should format decimal amounts", () => {
       expect(formatAmount(100.5)).toBe("100.5");
-      expect(formatAmount(100.50)).toBe("100.5");
+      expect(formatAmount(100.5)).toBe("100.5");
       expect(formatAmount(100.99)).toBe("100.99");
     });
 
@@ -229,4 +229,3 @@ describe("parser", () => {
     });
   });
 });
-

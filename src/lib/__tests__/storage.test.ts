@@ -80,7 +80,10 @@ describe("storage", () => {
     });
 
     it("should return empty array when data is not an array", () => {
-      localStorage.setItem("bujit_transactions", JSON.stringify({ not: "array" }));
+      localStorage.setItem(
+        "bujit_transactions",
+        JSON.stringify({ not: "array" })
+      );
       const result = getTransactions();
       expect(result).toEqual([]);
     });
@@ -141,11 +144,16 @@ describe("storage", () => {
         necessity: null,
       };
 
-      const setItemSpy = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
-        // create a QuotaExceededError
-        const error = new DOMException("Quota exceeded", "QuotaExceededError");
-        throw error;
-      });
+      const setItemSpy = vi
+        .spyOn(Storage.prototype, "setItem")
+        .mockImplementation(() => {
+          // create a QuotaExceededError
+          const error = new DOMException(
+            "Quota exceeded",
+            "QuotaExceededError"
+          );
+          throw error;
+        });
 
       expect(() => addTransaction(transaction)).toThrow("Storage is full");
       setItemSpy.mockRestore();
@@ -322,9 +330,11 @@ describe("storage", () => {
     });
 
     it("should return 'dark' on error", () => {
-      const getItemSpy = vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
-        throw new Error("Storage error");
-      });
+      const getItemSpy = vi
+        .spyOn(Storage.prototype, "getItem")
+        .mockImplementation(() => {
+          throw new Error("Storage error");
+        });
       expect(getTheme()).toBe("dark");
       getItemSpy.mockRestore();
     });
@@ -382,7 +392,6 @@ describe("storage", () => {
   });
 
   describe("Google Sheets config", () => {
-
     it("should return null when no config exists", () => {
       expect(getGoogleSheetsConfig()).toBeNull();
     });
@@ -431,10 +440,7 @@ describe("storage", () => {
     });
 
     it("should return null on parse error", () => {
-      localStorage.setItem(
-        "bujit_google_sheets_config",
-        "invalid json"
-      );
+      localStorage.setItem("bujit_google_sheets_config", "invalid json");
       expect(getGoogleSheetsConfig()).toBeNull();
     });
 
@@ -460,4 +466,3 @@ describe("storage", () => {
     });
   });
 });
-
