@@ -17,3 +17,11 @@ Object.defineProperty(global, "crypto", {
   },
   writable: true,
 });
+
+// ensure navigator exists for connectivity tests
+if (typeof navigator === "undefined") {
+  // @ts-expect-error - creating navigator for test environment
+  global.navigator = {
+    onLine: true,
+  };
+}

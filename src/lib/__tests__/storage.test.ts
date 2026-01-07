@@ -10,6 +10,9 @@ import {
   saveTheme,
   getSettings,
   saveSettings,
+  getGoogleSheetsConfig,
+  saveGoogleSheetsConfig,
+  type GoogleSheetsConfig,
 } from "../storage";
 import type { Transaction, PaymentMode, AppSettings } from "../types";
 
@@ -375,6 +378,85 @@ describe("storage", () => {
       };
       saveSettings(settings);
       expect(getSettings()).toEqual(settings);
+    });
+  });
+
+  describe("Google Sheets config", () => {
+
+    it("should return null when no config exists", () => {
+      expect(getGoogleSheetsConfig()).toBeNull();
+    });
+
+    it("should save and retrieve Google Sheets config", () => {
+      const config: GoogleSheetsConfig = {
+        accessToken: "test-token",
+        refreshToken: "refresh-token",
+        sheetId: "test-sheet-id",
+        autoSync: true,
+        lastSyncTimestamp: 1234567890,
+      };
+
+      saveGoogleSheetsConfig(config);
+      const retrieved = getGoogleSheetsConfig();
+
+      expect(retrieved).toEqual(config);
+    });
+
+    it("should save config without refresh token", () => {
+      const config: GoogleSheetsConfig = {
+        accessToken: "test-token",
+        sheetId: "test-sheet-id",
+        autoSync: false,
+      };
+
+      saveGoogleSheetsConfig(config);
+      const retrieved = getGoogleSheetsConfig();
+
+      expect(retrieved).toEqual(config);
+      expect(retrieved?.refreshToken).toBeUndefined();
+    });
+
+    it("should clear config when saving null", () => {
+      const config: GoogleSheetsConfig = {
+        accessToken: "test-token",
+        sheetId: "test-sheet-id",
+        autoSync: true,
+      };
+
+      saveGoogleSheetsConfig(config);
+      expect(getGoogleSheetsConfig()).not.toBeNull();
+
+      saveGoogleSheetsConfig(null);
+      expect(getGoogleSheetsConfig()).toBeNull();
+    });
+
+    it("should return null on parse error", () => {
+      localStorage.setItem(
+        "bujit_google_sheets_config",
+        "invalid json"
+      );
+      expect(getGoogleSheetsConfig()).toBeNull();
+    });
+
+    it("should update last sync timestamp", () => {
+      const config: GoogleSheetsConfig = {
+        accessToken: "test-token",
+        sheetId: "test-sheet-id",
+        autoSync: true,
+        lastSyncTimestamp: 1000,
+      };
+
+      saveGoogleSheetsConfig(config);
+      const retrieved = getGoogleSheetsConfig();
+      expect(retrieved?.lastSyncTimestamp).toBe(1000);
+
+      const updated: GoogleSheetsConfig = {
+        ...config,
+        lastSyncTimestamp: 2000,
+      };
+      saveGoogleSheetsConfig(updated);
+      const updatedRetrieved = getGoogleSheetsConfig();
+      expect(updatedRetrieved?.lastSyncTimestamp).toBe(2000);
     });
   });
 });

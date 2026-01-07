@@ -131,3 +131,33 @@ export function getSettings(): AppSettings {
 export function saveSettings(settings: AppSettings): void {
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
 }
+
+// Google Sheets sync configuration
+const GOOGLE_SHEETS_CONFIG_KEY = "bujit_google_sheets_config";
+
+export interface GoogleSheetsConfig {
+  accessToken: string;
+  refreshToken?: string;
+  sheetId: string;
+  autoSync: boolean;
+  lastSyncTimestamp?: number;
+}
+
+export function getGoogleSheetsConfig(): GoogleSheetsConfig | null {
+  try {
+    const data = localStorage.getItem(GOOGLE_SHEETS_CONFIG_KEY);
+    return data ? JSON.parse(data) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveGoogleSheetsConfig(
+  config: GoogleSheetsConfig | null
+): void {
+  if (config) {
+    localStorage.setItem(GOOGLE_SHEETS_CONFIG_KEY, JSON.stringify(config));
+  } else {
+    localStorage.removeItem(GOOGLE_SHEETS_CONFIG_KEY);
+  }
+}

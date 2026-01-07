@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   Transaction,
   PaymentMode,
@@ -25,6 +25,13 @@ import {
   subMonths,
   subYears,
 } from "date-fns";
+import { isOnline } from "@/lib/connectivity";
+import {
+  getGoogleSheetsConfig,
+  saveGoogleSheetsConfig,
+  type GoogleSheetsConfig,
+} from "@/lib/storage";
+import { syncTransactionsToSheet } from "@/lib/googleSheets";
 
 export type TimePeriod =
   | "thisMonth"
@@ -154,6 +161,9 @@ export function useBudgly() {
 
   const [timePeriod, setTimePeriod] = useState<TimePeriod>("thisMonth");
 
+  // auto-sync debounce timer
+  const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // ensure theme class is set (redundant but safe)
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
@@ -166,6 +176,42 @@ export function useBudgly() {
     document.documentElement.classList.toggle("dark", newTheme === "dark");
   }, [theme]);
 
+  // debounced auto-sync function
+  const triggerAutoSync = useCallback((updatedTransactions: Transaction[]) => {
+    // clear existing timer
+    if (syncTimerRef.current) {
+      clearTimeout(syncTimerRef.current);
+    }
+
+    // check if auto-sync is enabled and device is online
+    const config = getGoogleSheetsConfig();
+    if (!config?.autoSync || !config?.sheetId) {
+      return; // auto-sync not enabled or no sheet configured
+    }
+
+    if (!isOnline()) {
+      return; // silent failure when offline
+    }
+
+    // debounce sync by 500ms
+    syncTimerRef.current = setTimeout(async () => {
+      try {
+        await syncTransactionsToSheet(updatedTransactions);
+        // update last sync timestamp
+        const currentConfig = getGoogleSheetsConfig();
+        if (currentConfig) {
+          const updatedConfig: GoogleSheetsConfig = {
+            ...currentConfig,
+            lastSyncTimestamp: Date.now(),
+          };
+          saveGoogleSheetsConfig(updatedConfig);
+        }
+      } catch {
+        // silent failure - don't show errors for auto-sync
+      }
+    }, 500);
+  }, []);
+
   const handleAddTransaction = useCallback(
     (transaction: Omit<Transaction, "id">) => {
       const newTransaction: Transaction = {
@@ -174,30 +220,41 @@ export function useBudgly() {
       };
       const updated = addTransaction(newTransaction);
       setTransactions(updated);
+      // trigger auto-sync if enabled and online
+      triggerAutoSync(updated);
       return newTransaction;
     },
-    []
+    [triggerAutoSync]
   );
 
-  const handleDeleteTransaction = useCallback((id: string) => {
-    const updated = deleteTransaction(id);
-    setTransactions(updated);
-  }, []);
+  const handleDeleteTransaction = useCallback(
+    (id: string) => {
+      const updated = deleteTransaction(id);
+      setTransactions(updated);
+      // trigger auto-sync if enabled and online
+      triggerAutoSync(updated);
+    },
+    [triggerAutoSync]
+  );
 
   const handleUpdateNecessity = useCallback(
     (id: string, necessity: NecessityType) => {
       const updated = updateTransaction(id, { necessity });
       setTransactions(updated);
+      // trigger auto-sync if enabled and online
+      triggerAutoSync(updated);
     },
-    []
+    [triggerAutoSync]
   );
 
   const handleUpdateTransaction = useCallback(
     (id: string, updates: Partial<Transaction>) => {
       const updated = updateTransaction(id, updates);
       setTransactions(updated);
+      // trigger auto-sync if enabled and online
+      triggerAutoSync(updated);
     },
-    []
+    [triggerAutoSync]
   );
 
   const handleUpdatePaymentModes = useCallback((modes: PaymentMode[]) => {
@@ -299,6 +356,15 @@ export function useBudgly() {
       .slice(0, 4)
       .map((item) => item.transaction);
   }, [transactions]);
+
+  // cleanup sync timer on unmount
+  useEffect(() => {
+    return () => {
+      if (syncTimerRef.current) {
+        clearTimeout(syncTimerRef.current);
+      }
+    };
+  }, []);
 
   return {
     transactions,

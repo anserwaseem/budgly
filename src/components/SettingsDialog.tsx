@@ -20,6 +20,7 @@ import {
   parseCSVToTransactions,
   downloadFile,
 } from "@/lib/csv";
+import { GoogleSheetsSync } from "@/components/GoogleSheetsSync";
 
 interface SettingsDialogProps {
   settings: AppSettings;
@@ -61,9 +62,9 @@ export function SettingsDialog({
   const [editingModeId, setEditingModeId] = useState<string | null>(null);
   const [editModeName, setEditModeName] = useState("");
   const [editModeShort, setEditModeShort] = useState("");
-  const [activeTab, setActiveTab] = useState<"general" | "payments" | "data">(
-    "general"
-  );
+  const [activeTab, setActiveTab] = useState<
+    "general" | "payments" | "data" | "sync"
+  >("general");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -244,7 +245,7 @@ export function SettingsDialog({
 
         {/* Tabs */}
         <div className="flex gap-1 p-2 border-b border-border shrink-0">
-          {(["general", "payments", "data"] as const).map((tab) => (
+          {(["general", "payments", "data", "sync"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -260,7 +261,16 @@ export function SettingsDialog({
           ))}
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto p-4 relative">
+          {/* Hidden file input - positioned absolutely to not affect layout */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv"
+            onChange={handleFileChange}
+            className="absolute -z-10 opacity-0 pointer-events-none"
+            aria-hidden="true"
+          />
           {activeTab === "general" && (
             <div className="space-y-6">
               <div>
@@ -431,15 +441,6 @@ export function SettingsDialog({
 
           {activeTab === "data" && (
             <div className="space-y-4">
-              {/* Hidden file input */}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".csv"
-                onChange={handleFileChange}
-                className="hidden"
-              />
-
               <p className="text-sm text-muted-foreground">
                 Import or export your transaction data using CSV format.
               </p>
@@ -496,6 +497,16 @@ export function SettingsDialog({
                   </p>
                 </div>
               </div>
+            </div>
+          )}
+
+          {activeTab === "sync" && (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Sync your transactions to Google Sheets for backup and analysis.
+                Sync only works when your device is online.
+              </p>
+              <GoogleSheetsSync transactions={transactions} />
             </div>
           )}
         </div>
