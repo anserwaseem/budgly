@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { X, CalendarIcon, Minus, Plus } from "lucide-react";
+import { useState, useMemo } from "react";
+import { X, CalendarIcon, Minus, Plus, Check, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
 import { Transaction, NecessityType, PaymentMode } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -9,6 +9,11 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import {
+  evaluateMathExpression,
+  hasOperators,
+  formatEvaluatedAmount,
+} from "@/lib/mathEval";
 
 interface EditTransactionDialogProps {
   transaction: Transaction;
@@ -37,13 +42,20 @@ export function EditTransactionDialog({
   );
   const [calendarOpen, setCalendarOpen] = useState(false);
 
+  // Evaluate math expression in amount field
+  const evaluatedAmount = useMemo(() => {
+    return evaluateMathExpression(amount);
+  }, [amount]);
+
+  const showMathPreview = hasOperators(amount) && amount.trim().length > 0;
+
   const handleSave = () => {
-    const parsedAmount = parseFloat(amount);
-    if (!reason.trim() || isNaN(parsedAmount) || parsedAmount <= 0) return;
+    const finalAmount = evaluatedAmount;
+    if (!reason.trim() || finalAmount === null || finalAmount <= 0) return;
 
     onSave(transaction.id, {
       reason: reason.trim(),
-      amount: parsedAmount,
+      amount: finalAmount,
       paymentMode,
       necessity: type === "income" ? null : necessity,
       type,
@@ -142,18 +154,50 @@ export function EditTransactionDialog({
             />
           </div>
 
-          {/* Amount */}
+          {/* Amount with Math Support */}
           <div>
             <label className="text-sm text-muted-foreground mb-1.5 block">
               Amount ({currencySymbol})
             </label>
-            <input
-              type="number"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              className="w-full bg-input border border-border rounded-lg px-3 py-2.5 font-mono
-                         focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-            />
+            <div className="relative">
+              <input
+                type="text"
+                inputMode="decimal"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="e.g., 100+50 or 150"
+                className={cn(
+                  "w-full bg-input border rounded-lg px-3 py-2.5 font-mono",
+                  "focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary",
+                  showMathPreview && evaluatedAmount !== null && "pr-10",
+                  showMathPreview && evaluatedAmount === null && "border-destructive"
+                )}
+              />
+              {showMathPreview && (
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  {evaluatedAmount !== null ? (
+                    <Check className="w-4 h-4 text-primary" />
+                  ) : (
+                    <AlertCircle className="w-4 h-4 text-destructive" />
+                  )}
+                </div>
+              )}
+            </div>
+            {/* Math Preview */}
+            {showMathPreview && (
+              <div
+                className={cn(
+                  "mt-1.5 text-sm font-mono",
+                  evaluatedAmount !== null
+                    ? "text-primary"
+                    : "text-destructive"
+                )}
+              >
+                {evaluatedAmount !== null
+                  ? `= ${formatEvaluatedAmount(evaluatedAmount, currencySymbol)}`
+                  : "= Invalid expression"}
+              </div>
+            )}
           </div>
 
           {/* Payment Mode */}
