@@ -32,7 +32,7 @@ import {
   type GoogleSheetsConfig,
 } from "@/lib/storage";
 import { syncTransactionsToSheet } from "@/lib/googleSheets";
-
+import { useStreakTracking } from "@/hooks/useStreakTracking";
 
 const DEFAULT_MODES: PaymentMode[] = [
   { id: "1", name: "Debit Card", shorthand: "D" },
@@ -127,6 +127,8 @@ export function useBudgly() {
   const [theme, setTheme] = useState<"light" | "dark">(getInitialTheme);
   const [settings, setSettings] = useState<AppSettings>(getInitialSettings);
 
+  // Streak tracking - automatically recalculates when transactions change
+  const { streakData } = useStreakTracking(transactions);
 
   // auto-sync debounce timer
   const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -187,6 +189,7 @@ export function useBudgly() {
       };
       const updated = addTransaction(newTransaction);
       setTransactions(updated);
+      // Streaks will auto-update via useStreakTracking hook when transactions change
       // trigger auto-sync if enabled and online
       triggerAutoSync(updated);
       return newTransaction;
@@ -198,6 +201,7 @@ export function useBudgly() {
     (id: string) => {
       const updated = deleteTransaction(id);
       setTransactions(updated);
+      // Streaks will auto-update via useStreakTracking hook when transactions change
       // trigger auto-sync if enabled and online
       triggerAutoSync(updated);
     },
@@ -218,6 +222,7 @@ export function useBudgly() {
     (id: string, updates: Partial<Transaction>) => {
       const updated = updateTransaction(id, updates);
       setTransactions(updated);
+      // Streaks will auto-update via useStreakTracking hook when transactions change
       // trigger auto-sync if enabled and online
       triggerAutoSync(updated);
     },
@@ -332,6 +337,7 @@ export function useBudgly() {
     stats,
     groupedTransactions,
     quickAddSuggestions,
+    streakData,
     toggleTheme,
     addTransaction: handleAddTransaction,
     deleteTransaction: handleDeleteTransaction,

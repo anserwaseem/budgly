@@ -28,3 +28,10 @@ export interface AppSettings {
   currency: string;
   currencySymbol: string;
 }
+
+export interface StreakData {
+  noExpenseStreak: number; // consecutive days without expenses
+  spendingStreak: number; // consecutive days with expenses
+  lastNoExpenseDate: string | null; // ISO date string
+  lastSpendingDate: string | null; // ISO date string
+}

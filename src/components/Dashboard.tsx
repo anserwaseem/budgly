@@ -14,7 +14,7 @@ import {
   AreaChart,
   Area,
 } from "recharts";
-import { Transaction } from "@/lib/types";
+import { Transaction, StreakData } from "@/lib/types";
 import { formatAmount } from "@/lib/parser";
 import {
   TrendingUp,
@@ -31,6 +31,8 @@ import {
   Repeat,
   DollarSign,
   CalendarCheck,
+  Leaf,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -46,9 +48,14 @@ import {
 interface DashboardProps {
   transactions: Transaction[];
   currencySymbol: string;
+  streakData?: StreakData;
 }
 
-export function Dashboard({ transactions, currencySymbol }: DashboardProps) {
+export function Dashboard({
+  transactions,
+  currencySymbol,
+  streakData,
+}: DashboardProps) {
   // Transactions are already filtered by the parent component
   const filteredTransactions = transactions;
 
@@ -490,22 +497,45 @@ export function Dashboard({ transactions, currencySymbol }: DashboardProps) {
 
       {/* New Insights Row 1 */}
       <div className="grid grid-cols-2 gap-2 sm:gap-3">
+        {/* No-Expense Streak */}
+        <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
+          <div className="flex items-center gap-1.5 text-muted-foreground mb-1.5">
+            <Leaf className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0 text-income" />
+            <span className="text-[10px] sm:text-xs uppercase tracking-wider">
+              No-Expense Streak
+            </span>
+          </div>
+          <p className="text-base sm:text-xl font-bold font-mono text-income">
+            {streakData?.noExpenseStreak || 0}{" "}
+            {(streakData?.noExpenseStreak || 0) === 1 ? "day" : "days"}
+          </p>
+          <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
+            Days without spending
+          </p>
+        </div>
+
         {/* Spending Streak */}
         <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
           <div className="flex items-center gap-1.5 text-muted-foreground mb-1.5">
             <Flame className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
             <span className="text-[10px] sm:text-xs uppercase tracking-wider">
-              Streak
+              Spending Streak
             </span>
           </div>
           <p className="text-base sm:text-xl font-bold font-mono text-foreground">
-            {analytics.streakDays} {analytics.streakDays === 1 ? "day" : "days"}
+            {streakData?.spendingStreak || analytics.streakDays}{" "}
+            {(streakData?.spendingStreak || analytics.streakDays) === 1
+              ? "day"
+              : "days"}
           </p>
           <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
             Consecutive spending
           </p>
         </div>
+      </div>
 
+      {/* New Insights Row 1.5 */}
+      <div className="grid grid-cols-2 gap-2 sm:gap-3">
         {/* Avg Transaction */}
         <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
           <div className="flex items-center gap-1.5 text-muted-foreground mb-1.5">

@@ -29,6 +29,7 @@ const IndexContent = () => {
     stats,
     groupedTransactions,
     quickAddSuggestions,
+    streakData,
     toggleTheme,
     addTransaction,
     deleteTransaction,
@@ -237,6 +238,7 @@ const IndexContent = () => {
           <Dashboard
             transactions={filteredTransactions}
             currencySymbol={settings.currencySymbol}
+            streakData={streakData}
           />
         </Activity>
       </div>
