@@ -1,6 +1,7 @@
 import { Transaction, NecessityType, AppSettings } from "@/lib/types";
 import { TransactionCard } from "./TransactionCard";
-import { getRelativeDate } from "@/lib/parser";
+import { getRelativeDate, formatAmount } from "@/lib/parser";
+import { formatMaskedAmount } from "@/lib/privacy";
 import {
   Receipt,
   Sparkles,
@@ -306,9 +307,9 @@ export function TransactionList({
                           )}
                           onClick={(e) => e.stopPropagation()}
                         >
-                          {groupNet >= 0 ? "+" : ""}
-                          {currencySymbol}
-                          {Math.abs(groupNet).toLocaleString("en-PK")}
+                          {settings.privacyMode?.hideAmounts
+                            ? formatMaskedAmount(Math.abs(groupNet), settings, currencySymbol)
+                            : `${groupNet >= 0 ? "+" : ""}${currencySymbol}${formatAmount(Math.abs(groupNet))}`}
                         </span>
                       </PopoverTrigger>
                       <PopoverContent className="w-48 p-3" align="end">
@@ -318,8 +319,9 @@ export function TransactionList({
                               Income
                             </span>
                             <span className="text-sm font-mono font-medium text-income">
-                              +{currencySymbol}
-                              {groupIncome.toLocaleString("en-PK")}
+                              {settings.privacyMode?.hideAmounts
+                                ? formatMaskedAmount(groupIncome, settings, currencySymbol)
+                                : `+${currencySymbol}${formatAmount(groupIncome)}`}
                             </span>
                           </div>
                           <div className="flex justify-between items-center">
@@ -327,8 +329,9 @@ export function TransactionList({
                               Expenses
                             </span>
                             <span className="text-sm font-mono font-medium text-expense">
-                              −{currencySymbol}
-                              {groupExpense.toLocaleString("en-PK")}
+                              {settings.privacyMode?.hideAmounts
+                                ? formatMaskedAmount(groupExpense, settings, currencySymbol)
+                                : `−${currencySymbol}${formatAmount(groupExpense)}`}
                             </span>
                           </div>
                           <div className="h-px bg-border my-1" />
@@ -342,9 +345,9 @@ export function TransactionList({
                                 groupNet >= 0 ? "text-income" : "text-expense"
                               )}
                             >
-                              {groupNet >= 0 ? "+" : ""}
-                              {currencySymbol}
-                              {Math.abs(groupNet).toLocaleString("en-PK")}
+                              {settings.privacyMode?.hideAmounts
+                                ? formatMaskedAmount(Math.abs(groupNet), settings, currencySymbol)
+                                : `${groupNet >= 0 ? "+" : ""}${currencySymbol}${formatAmount(Math.abs(groupNet))}`}
                             </span>
                           </div>
                         </div>
@@ -357,9 +360,9 @@ export function TransactionList({
                         groupNet >= 0 ? "text-income" : "text-expense"
                       )}
                     >
-                      {groupNet >= 0 ? "+" : ""}
-                      {currencySymbol}
-                      {Math.abs(groupNet).toLocaleString("en-PK")}
+                      {settings.privacyMode?.hideAmounts
+                        ? formatMaskedAmount(Math.abs(groupNet), settings, currencySymbol)
+                        : `${groupNet >= 0 ? "+" : ""}${currencySymbol}${formatAmount(Math.abs(groupNet))}`}
                     </span>
                   )}
                 </div>
