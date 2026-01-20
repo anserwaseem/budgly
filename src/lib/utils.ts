@@ -1,6 +1,7 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { triggerHaptic } from "tactus";
+import { TimePeriod } from "@/hooks/useFilters";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -48,5 +49,25 @@ export function haptic(
     }
   } catch {
     // silently fail if haptic feedback fails
+  }
+}
+
+// Get human-readable period text for dashboard labels
+export function getPeriodText(timePeriod: TimePeriod): string {
+  switch (timePeriod) {
+    case "thisMonth":
+      return "this month";
+    case "lastMonth":
+      return "last month";
+    case "thisYear":
+      return "this year";
+    case "lastYear":
+      return "last year";
+    case "allTime":
+      return "overall";
+    case "custom":
+      return "in period";
+    default:
+      return "this month";
   }
 }

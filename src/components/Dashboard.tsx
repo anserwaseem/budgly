@@ -21,7 +21,6 @@ import {
   Wallet,
   Target,
   Calendar,
-  CreditCard,
   PiggyBank,
   ArrowUpRight,
   ArrowDownRight,
@@ -32,17 +31,19 @@ import {
   CalendarCheck,
   Leaf,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, getPeriodText } from "@/lib/utils";
 import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
 
 import { AppSettings } from "@/lib/types";
 import { formatMaskedAmount, maskReason } from "@/lib/privacy";
+import type { TimePeriod } from "@/hooks/useFilters";
 
 interface DashboardProps {
   transactions: Transaction[];
   currencySymbol: string;
   settings: AppSettings;
   streakData?: StreakData;
+  timePeriod: TimePeriod;
 }
 
 export function Dashboard({
@@ -50,9 +51,12 @@ export function Dashboard({
   currencySymbol,
   settings,
   streakData,
+  timePeriod,
 }: DashboardProps) {
   // Transactions are already filtered by the parent component
   const filteredTransactions = transactions;
+
+  const periodText = getPeriodText(timePeriod);
 
   // Helper to format amounts with privacy mode
   const formatAmountWithPrivacy = (amount: number): string => {
@@ -448,7 +452,7 @@ export function Dashboard({
         </div>
       </div>
 
-      {/* Avg Daily & Transaction Count */}
+      {/* Avg Daily & Avg/Txn */}
       <div className="grid grid-cols-2 gap-2 sm:gap-3">
         <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
           <div className="flex items-center gap-1.5 text-muted-foreground mb-1.5">
@@ -461,22 +465,23 @@ export function Dashboard({
             {formatAmountWithPrivacy(analytics.avgDailySpending)}
           </p>
           <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
-            Per day this month
+            Per day {periodText}
           </p>
         </div>
 
+        {/* Avg Transaction */}
         <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
           <div className="flex items-center gap-1.5 text-muted-foreground mb-1.5">
-            <CreditCard className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+            <DollarSign className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
             <span className="text-[10px] sm:text-xs uppercase tracking-wider">
-              Transactions
+              Avg/Txn
             </span>
           </div>
-          <p className="text-base sm:text-xl font-bold font-mono text-foreground">
-            {analytics.transactionCount}
+          <p className="text-base sm:text-xl font-bold font-mono text-foreground truncate">
+            {formatAmountWithPrivacy(analytics.avgTransactionSize)}
           </p>
           <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
-            This month
+            Per transaction
           </p>
         </div>
       </div>
@@ -520,25 +525,6 @@ export function Dashboard({
         </div>
       </div>
 
-      {/* New Insights Row 1.5 */}
-      <div className="grid grid-cols-2 gap-2 sm:gap-3">
-        {/* Avg Transaction */}
-        <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
-          <div className="flex items-center gap-1.5 text-muted-foreground mb-1.5">
-            <DollarSign className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
-            <span className="text-[10px] sm:text-xs uppercase tracking-wider">
-              Avg/Txn
-            </span>
-          </div>
-          <p className="text-base sm:text-xl font-bold font-mono text-foreground truncate">
-            {formatAmountWithPrivacy(analytics.avgTransactionSize)}
-          </p>
-          <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
-            Per transaction
-          </p>
-        </div>
-      </div>
-
       {/* New Insights Row 2 */}
       <div className="grid grid-cols-2 gap-2 sm:gap-3">
         {/* Active Days */}
@@ -570,7 +556,7 @@ export function Dashboard({
               {maskReason(analytics.mostFrequentCategory[0], settings)}
             </p>
             <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
-              {analytics.mostFrequentCategory[1]} times this month
+              {analytics.mostFrequentCategory[1]} times {periodText}
             </p>
           </div>
         )}
@@ -908,35 +894,6 @@ export function Dashboard({
             <span className="text-[10px] sm:text-xs text-muted-foreground">
               Savings
             </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Last Month Comparison */}
-      <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
-        <h3 className="text-xs sm:text-sm font-medium text-muted-foreground mb-2 sm:mb-3">
-          Last Month
-        </h3>
-        <div className="flex items-center justify-between gap-2">
-          <div className="min-w-0">
-            <p className="text-sm sm:text-lg font-bold font-mono text-foreground truncate">
-              {currencySymbol}
-              {formatAmount(analytics.lastMonthTotal)}
-            </p>
-            <p className="text-[10px] sm:text-xs text-muted-foreground">
-              Total spent
-            </p>
-          </div>
-          <div
-            className={cn(
-              "px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium flex-shrink-0",
-              analytics.percentChange <= 0
-                ? "bg-income/15 text-income"
-                : "bg-expense/15 text-expense"
-            )}
-          >
-            {analytics.percentChange <= 0 ? "↓" : "↑"}{" "}
-            {Math.abs(analytics.percentChange).toFixed(0)}%
           </div>
         </div>
       </div>
