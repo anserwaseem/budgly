@@ -11,7 +11,7 @@ import { Header } from "@/components/Header";
 import { StatsBar } from "@/components/StatsBar";
 import { TransactionInput } from "@/components/TransactionInput";
 import { TransactionList } from "@/components/TransactionList";
-import { Dashboard } from "@/components/Dashboard";
+import { Dashboard } from "@/components/dashboard/Dashboard";
 import { FilterButton, FilterContent } from "@/components/FilterPanel";
 import { SettingsDialog } from "@/components/SettingsDialog";
 import { EditTransactionDialog } from "@/components/EditTransactionDialog";
@@ -36,7 +36,8 @@ const IndexContent = () => {
     updateSettings,
   } = useBujit();
 
-  const { getFilteredTransactions } = useFilters();
+  const { getFilteredTransactions, filters } = useFilters();
+  const { timePeriod } = filters;
 
   const [activeTab, setActiveTab] = useState<"transactions" | "dashboard">(
     "transactions"
@@ -230,6 +231,7 @@ const IndexContent = () => {
             currencySymbol={settings.currencySymbol}
             settings={settings}
             streakData={streakData}
+            timePeriod={timePeriod}
           />
         </Activity>
       </div>
