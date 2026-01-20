@@ -13,7 +13,6 @@ import {
   YAxis,
 } from "recharts";
 import {
-  ArrowDownRight,
   ArrowUpRight,
   Award,
   Calendar,
@@ -24,8 +23,6 @@ import {
   PiggyBank,
   Repeat,
   Target,
-  TrendingDown,
-  TrendingUp,
   Wallet,
 } from "lucide-react";
 import { format } from "date-fns";
@@ -38,17 +35,19 @@ import type {
   DashboardCardSpec,
   DashboardAnalytics,
 } from "../types";
+import { StatCard } from "../cards/StatCard";
+import { InsightCard } from "../cards/InsightCard";
+import { MODE_COLORS, CATEGORY_COLORS } from "../constants";
 
-type BuildCtx = {
+interface BuildCtx {
   analytics: DashboardAnalytics;
   currencySymbol: string;
   settings: AppSettings;
   streakData?: StreakData;
   periodText: string;
-  pieData: { name: string; value: number; color: string }[];
   formatAmountWithPrivacy: (amount: number) => string;
   maskReason: (reason: string) => string;
-};
+}
 
 export function buildDashboardCards(
   ctx: BuildCtx
@@ -59,241 +58,138 @@ export function buildDashboardCards(
     settings,
     streakData,
     periodText,
-    pieData,
     formatAmountWithPrivacy,
     maskReason,
   } = ctx;
-
-  const modeColors = [
-    "hsl(158, 55%, 50%)",
-    "hsl(190, 65%, 50%)",
-    "hsl(35, 85%, 55%)",
-    "hsl(265, 50%, 60%)",
-    "hsl(0, 60%, 55%)",
-  ];
-
-  const categoryColors = [
-    "hsl(var(--primary))",
-    "hsl(190, 65%, 50%)",
-    "hsl(35, 85%, 55%)",
-    "hsl(265, 50%, 60%)",
-    "hsl(158, 55%, 50%)",
-  ];
 
   const cards: Record<DashboardCardId, DashboardCardSpec> = {
     spent: {
       id: "spent",
       type: "stat",
       render: () => (
-        <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
-          <div className="flex items-center gap-1.5 text-muted-foreground mb-1.5">
-            <Wallet className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
-            <span className="text-[10px] sm:text-xs uppercase tracking-wider">
-              Spent
-            </span>
-          </div>
-          <p className="text-base sm:text-xl font-bold font-mono text-expense truncate">
-            {formatAmountWithPrivacy(analytics.periodTotal)}
-          </p>
-          <div
-            className={cn(
-              "flex items-center gap-1 text-[10px] sm:text-xs mt-1",
-              analytics.percentChange <= 0 ? "text-income" : "text-expense"
-            )}
-          >
-            {analytics.percentChange <= 0 ? (
-              <TrendingDown className="w-2.5 h-2.5 sm:w-3 sm:h-3 flex-shrink-0" />
-            ) : (
-              <TrendingUp className="w-2.5 h-2.5 sm:w-3 sm:h-3 flex-shrink-0" />
-            )}
-            <span className="truncate">
-              {Math.abs(analytics.percentChange).toFixed(0)}% vs last month
-            </span>
-          </div>
-        </div>
+        <StatCard
+          icon={Wallet}
+          label="Spent"
+          value={formatAmountWithPrivacy(analytics.periodTotal)}
+          valueClassName="text-expense"
+          trend={{
+            value: analytics.percentChange,
+            label: "vs last month",
+            isPositive: analytics.percentChange <= 0,
+          }}
+        />
       ),
     },
     income: {
       id: "income",
       type: "stat",
       render: () => (
-        <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
-          <div className="flex items-center gap-1.5 text-muted-foreground mb-1.5">
-            <ArrowUpRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
-            <span className="text-[10px] sm:text-xs uppercase tracking-wider">
-              Income
-            </span>
-          </div>
-          <p className="text-base sm:text-xl font-bold font-mono text-income truncate">
-            {formatAmountWithPrivacy(analytics.periodIncomeTotal)}
-          </p>
-          <p className="text-[10px] sm:text-xs text-muted-foreground mt-1 truncate">
-            Filtered results
-          </p>
-        </div>
+        <StatCard
+          icon={ArrowUpRight}
+          label="Income"
+          value={formatAmountWithPrivacy(analytics.periodIncomeTotal)}
+          valueClassName="text-income"
+          subtitle="Filtered results"
+        />
       ),
     },
     savings: {
       id: "savings",
       type: "stat",
       render: () => (
-        <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
-          <div className="flex items-center gap-1.5 text-muted-foreground mb-1.5">
-            <PiggyBank className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
-            <span className="text-[10px] sm:text-xs uppercase tracking-wider">
-              Savings
-            </span>
-          </div>
-          <p
-            className={cn(
-              "text-base sm:text-xl font-bold font-mono truncate",
-              analytics.savingsThisPeriod >= 0 ? "text-income" : "text-expense"
-            )}
-          >
-            {analytics.savingsThisPeriod >= 0 ? "+" : ""}
-            {formatAmountWithPrivacy(Math.abs(analytics.savingsThisPeriod))}
-          </p>
-          <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
-            {analytics.savingsRate >= 0 ? analytics.savingsRate.toFixed(0) : 0}%
-            savings rate
-          </p>
-        </div>
+        <StatCard
+          icon={PiggyBank}
+          label="Savings"
+          value={`${analytics.savingsThisPeriod >= 0 ? "+" : ""}${formatAmountWithPrivacy(Math.abs(analytics.savingsThisPeriod))}`}
+          valueClassName={
+            analytics.savingsThisPeriod >= 0 ? "text-income" : "text-expense"
+          }
+          subtitle={`${analytics.savingsRate >= 0 ? analytics.savingsRate.toFixed(0) : 0}% savings rate`}
+        />
       ),
     },
     "this-week": {
       id: "this-week",
       type: "stat",
       render: () => (
-        <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
-          <div className="flex items-center gap-1.5 text-muted-foreground mb-1.5">
-            <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
-            <span className="text-[10px] sm:text-xs uppercase tracking-wider">
-              This Week
-            </span>
-          </div>
-          <p className="text-base sm:text-xl font-bold font-mono text-foreground truncate">
-            {formatAmountWithPrivacy(analytics.thisWeekTotal)}
-          </p>
-          <div
-            className={cn(
-              "flex items-center gap-1 text-[10px] sm:text-xs mt-1",
-              analytics.weekChange <= 0 ? "text-income" : "text-expense"
-            )}
-          >
-            {analytics.weekChange <= 0 ? (
-              <ArrowDownRight className="w-2.5 h-2.5 sm:w-3 sm:h-3 flex-shrink-0" />
-            ) : (
-              <ArrowUpRight className="w-2.5 h-2.5 sm:w-3 sm:h-3 flex-shrink-0" />
-            )}
-            <span className="truncate">
-              {Math.abs(analytics.weekChange).toFixed(0)}% vs last week
-            </span>
-          </div>
-        </div>
+        <StatCard
+          icon={Calendar}
+          label="This Week"
+          value={formatAmountWithPrivacy(analytics.thisWeekTotal)}
+          trend={{
+            value: analytics.weekChange,
+            label: "vs last week",
+            isPositive: analytics.weekChange <= 0,
+          }}
+        />
       ),
     },
     "daily-avg": {
       id: "daily-avg",
       type: "stat",
       render: () => (
-        <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
-          <div className="flex items-center gap-1.5 text-muted-foreground mb-1.5">
-            <Target className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
-            <span className="text-[10px] sm:text-xs uppercase tracking-wider">
-              Daily Avg
-            </span>
-          </div>
-          <p className="text-base sm:text-xl font-bold font-mono text-foreground truncate">
-            {formatAmountWithPrivacy(analytics.avgDailySpending)}
-          </p>
-          <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
-            Per day {periodText}
-          </p>
-        </div>
+        <StatCard
+          icon={Target}
+          label="Daily Avg"
+          value={formatAmountWithPrivacy(analytics.avgDailySpending)}
+          subtitle={`Per day ${periodText}`}
+        />
       ),
     },
     "avg-txn": {
       id: "avg-txn",
       type: "insight",
       render: () => (
-        <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
-          <div className="flex items-center gap-1.5 text-muted-foreground mb-1.5">
-            <DollarSign className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
-            <span className="text-[10px] sm:text-xs uppercase tracking-wider">
-              Avg/Txn
-            </span>
-          </div>
-          <p className="text-base sm:text-xl font-bold font-mono text-foreground truncate">
-            {formatAmountWithPrivacy(analytics.avgTransactionSize)}
-          </p>
-          <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
-            Per transaction
-          </p>
-        </div>
+        <InsightCard
+          icon={DollarSign}
+          label="Avg/Txn"
+          value={formatAmountWithPrivacy(analytics.avgTransactionSize)}
+          subtitle="Per transaction"
+        />
       ),
     },
     "no-expense-streak": {
       id: "no-expense-streak",
       type: "insight",
-      render: () => (
-        <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
-          <div className="flex items-center gap-1.5 text-muted-foreground mb-1.5">
-            <Leaf className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0 text-income" />
-            <span className="text-[10px] sm:text-xs uppercase tracking-wider">
-              No-Expense Streak
-            </span>
-          </div>
-          <p className="text-base sm:text-xl font-bold font-mono text-income">
-            {streakData?.noExpenseStreak || 0}{" "}
-            {(streakData?.noExpenseStreak || 0) === 1 ? "day" : "days"}
-          </p>
-          <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
-            Days without spending
-          </p>
-        </div>
-      ),
+      render: () => {
+        const days = streakData?.noExpenseStreak || 0;
+        return (
+          <InsightCard
+            icon={Leaf}
+            label="No-Expense Streak"
+            value={`${days} ${days === 1 ? "day" : "days"}`}
+            subtitle="Days without spending"
+            iconClassName="text-income"
+            valueClassName="text-income"
+          />
+        );
+      },
     },
     "spending-streak": {
       id: "spending-streak",
       type: "insight",
-      render: () => (
-        <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
-          <div className="flex items-center gap-1.5 text-muted-foreground mb-1.5">
-            <Flame className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
-            <span className="text-[10px] sm:text-xs uppercase tracking-wider">
-              Spending Streak
-            </span>
-          </div>
-          <p className="text-base sm:text-xl font-bold font-mono text-foreground">
-            {streakData?.spendingStreak || analytics.streakDays}{" "}
-            {(streakData?.spendingStreak || analytics.streakDays) === 1
-              ? "day"
-              : "days"}
-          </p>
-          <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
-            Consecutive spending
-          </p>
-        </div>
-      ),
+      render: () => {
+        const days = streakData?.spendingStreak || analytics.streakDays;
+        return (
+          <InsightCard
+            icon={Flame}
+            label="Spending Streak"
+            value={`${days} ${days === 1 ? "day" : "days"}`}
+            subtitle="Consecutive spending"
+          />
+        );
+      },
     },
     "active-days": {
       id: "active-days",
       type: "insight",
       render: () => (
-        <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
-          <div className="flex items-center gap-1.5 text-muted-foreground mb-1.5">
-            <CalendarCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
-            <span className="text-[10px] sm:text-xs uppercase tracking-wider">
-              Active Days
-            </span>
-          </div>
-          <p className="text-base sm:text-xl font-bold font-mono text-foreground">
-            {analytics.uniqueSpendingDays}
-          </p>
-          <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
-            Days with expenses
-          </p>
-        </div>
+        <InsightCard
+          icon={CalendarCheck}
+          label="Active Days"
+          value={String(analytics.uniqueSpendingDays)}
+          subtitle="Days with expenses"
+        />
       ),
     },
     "most-frequent": {
@@ -474,7 +370,7 @@ export function buildDashboardCards(
                         style={{
                           width: `${percentage}%`,
                           backgroundColor:
-                            categoryColors[index % categoryColors.length],
+                            CATEGORY_COLORS[index % CATEGORY_COLORS.length],
                         }}
                       />
                     </div>
@@ -489,7 +385,7 @@ export function buildDashboardCards(
       id: "needs-wants",
       type: "chart",
       render: () =>
-        pieData.length > 0 ? (
+        analytics.pieData.length > 0 ? (
           <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
             <h3 className="text-xs sm:text-sm font-medium text-muted-foreground mb-3 sm:mb-4">
               Needs vs Wants
@@ -499,7 +395,7 @@ export function buildDashboardCards(
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
-                      data={pieData}
+                      data={analytics.pieData}
                       cx="50%"
                       cy="50%"
                       innerRadius={20}
@@ -507,7 +403,7 @@ export function buildDashboardCards(
                       paddingAngle={2}
                       dataKey="value"
                     >
-                      {pieData.map((entry, index) => (
+                      {analytics.pieData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
@@ -515,7 +411,7 @@ export function buildDashboardCards(
                 </ResponsiveContainer>
               </div>
               <div className="flex-1 space-y-1.5 sm:space-y-2 min-w-0">
-                {pieData.map((item) => (
+                {analytics.pieData.map((item) => (
                   <div
                     key={item.name}
                     className="flex items-center justify-between gap-2"
@@ -581,7 +477,7 @@ export function buildDashboardCards(
                     {analytics.byMode.map((_, index) => (
                       <Cell
                         key={`cell-${index}`}
-                        fill={modeColors[index % modeColors.length]}
+                        fill={MODE_COLORS[index % MODE_COLORS.length]}
                       />
                     ))}
                   </Bar>

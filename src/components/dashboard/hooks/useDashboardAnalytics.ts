@@ -1,7 +1,18 @@
 import { useMemo } from "react";
-import { endOfMonth, startOfMonth, subMonths } from "date-fns";
 import type { Transaction } from "@/lib/types";
 import type { DashboardAnalytics } from "../types";
+import { PIE_CHART_COLORS } from "../constants";
+import {
+  getLastMonthRange,
+  filterByType,
+  calculateTotal,
+  calculateByNecessity,
+  aggregateByKey,
+  filterByDateRange,
+  getWeekStart,
+  getWeekEnd,
+  calculatePercentChange,
+} from "./analytics/helpers";
 
 export function useDashboardAnalytics(
   filteredTransactions: Transaction[],
@@ -9,54 +20,31 @@ export function useDashboardAnalytics(
 ): DashboardAnalytics {
   return useMemo(() => {
     const now = new Date();
-    const startOfLastMonth = startOfMonth(subMonths(now, 1));
-    const endOfLastMonth = endOfMonth(subMonths(now, 1));
+    const { start: startOfLastMonth, end: endOfLastMonth } =
+      getLastMonthRange();
 
-    const periodExpenses = filteredTransactions.filter(
-      (t) => t.type === "expense"
-    );
-    const periodIncome = filteredTransactions.filter(
-      (t) => t.type === "income"
-    );
+    const periodExpenses = filterByType(filteredTransactions, "expense");
+    const periodIncome = filterByType(filteredTransactions, "income");
 
-    const lastMonth = allTransactions.filter(
-      (t) =>
-        new Date(t.date) >= startOfLastMonth &&
-        new Date(t.date) <= endOfLastMonth &&
-        t.type === "expense"
+    const lastMonth = filterByType(
+      filterByDateRange(allTransactions, startOfLastMonth, endOfLastMonth),
+      "expense"
     );
 
-    const periodTotal = periodExpenses.reduce((sum, t) => sum + t.amount, 0);
-    const lastMonthTotal = lastMonth.reduce((sum, t) => sum + t.amount, 0);
-    const periodIncomeTotal = periodIncome.reduce(
-      (sum, t) => sum + t.amount,
-      0
-    );
+    const periodTotal = calculateTotal(periodExpenses);
+    const lastMonthTotal = calculateTotal(lastMonth);
+    const periodIncomeTotal = calculateTotal(periodIncome);
 
-    const needsTotal = periodExpenses
-      .filter((t) => t.necessity === "need")
-      .reduce((sum, t) => sum + t.amount, 0);
-    const wantsTotal = periodExpenses
-      .filter((t) => t.necessity === "want")
-      .reduce((sum, t) => sum + t.amount, 0);
-    const uncategorized = periodExpenses
-      .filter((t) => !t.necessity)
-      .reduce((sum, t) => sum + t.amount, 0);
+    const needsTotal = calculateByNecessity(periodExpenses, "need");
+    const wantsTotal = calculateByNecessity(periodExpenses, "want");
+    const uncategorized = calculateByNecessity(periodExpenses, null);
 
     const savingsThisPeriod = periodIncomeTotal - periodTotal;
     const savingsRate =
       periodIncomeTotal > 0 ? (savingsThisPeriod / periodIncomeTotal) * 100 : 0;
 
-    const byMode: Record<string, number> = {};
-    periodExpenses.forEach((t) => {
-      byMode[t.paymentMode] = (byMode[t.paymentMode] || 0) + t.amount;
-    });
-
-    const byReason: Record<string, number> = {};
-    periodExpenses.forEach((t) => {
-      const reason = t.reason || "Other";
-      byReason[reason] = (byReason[reason] || 0) + t.amount;
-    });
+    const byMode = aggregateByKey(periodExpenses, (t) => t.paymentMode);
+    const byReason = aggregateByKey(periodExpenses, (t) => t.reason || "Other");
     const topCategories = Object.entries(byReason)
       .sort(([, a], [, b]) => b - a)
       .slice(0, 5)
@@ -116,26 +104,19 @@ export function useDashboardAnalytics(
     }
 
     const getWeekData = (weeksAgo: number) => {
-      const weekStart = new Date();
-      weekStart.setDate(
-        weekStart.getDate() - weekStart.getDay() - weeksAgo * 7
+      const weekStart = getWeekStart(weeksAgo);
+      const weekEnd = getWeekEnd(weekStart);
+      return calculateTotal(
+        filterByType(
+          filterByDateRange(filteredTransactions, weekStart, weekEnd),
+          "expense"
+        )
       );
-      const weekEnd = new Date(weekStart);
-      weekEnd.setDate(weekEnd.getDate() + 6);
-      return filteredTransactions
-        .filter((t) => {
-          const d = new Date(t.date);
-          return d >= weekStart && d <= weekEnd && t.type === "expense";
-        })
-        .reduce((sum, t) => sum + t.amount, 0);
     };
 
     const thisWeekTotal = getWeekData(0);
     const lastWeekTotal = getWeekData(1);
-    const weekChange =
-      lastWeekTotal > 0
-        ? ((thisWeekTotal - lastWeekTotal) / lastWeekTotal) * 100
-        : 0;
+    const weekChange = calculatePercentChange(thisWeekTotal, lastWeekTotal);
 
     const transactionDates = filteredTransactions.map((t) => new Date(t.date));
     const minDate =
@@ -156,10 +137,7 @@ export function useDashboardAnalytics(
       periodExpenses.length > 0 ? periodTotal / daysInPeriod : 0;
 
     const transactionCount = periodExpenses.length;
-    const percentChange =
-      lastMonthTotal > 0
-        ? ((periodTotal - lastMonthTotal) / lastMonthTotal) * 100
-        : 0;
+    const percentChange = calculatePercentChange(periodTotal, lastMonthTotal);
 
     const biggestExpense =
       periodExpenses.length > 0
@@ -169,11 +147,14 @@ export function useDashboardAnalytics(
           )
         : null;
 
-    const frequencyByReason: Record<string, number> = {};
-    periodExpenses.forEach((t) => {
-      const reason = t.reason || "Other";
-      frequencyByReason[reason] = (frequencyByReason[reason] || 0) + 1;
-    });
+    const frequencyByReason = periodExpenses.reduce(
+      (acc, t) => {
+        const reason = t.reason || "Other";
+        acc[reason] = (acc[reason] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
     const mostFrequentCategory = Object.entries(frequencyByReason).sort(
       ([, a], [, b]) => b - a
     )[0];
@@ -219,6 +200,24 @@ export function useDashboardAnalytics(
     const needsWantsRatio =
       wantsTotal > 0 ? needsTotal / wantsTotal : needsTotal > 0 ? Infinity : 0;
 
+    const pieData = [
+      {
+        name: "Needs",
+        value: needsTotal,
+        color: PIE_CHART_COLORS.needs,
+      },
+      {
+        name: "Wants",
+        value: wantsTotal,
+        color: PIE_CHART_COLORS.wants,
+      },
+      {
+        name: "Other",
+        value: uncategorized,
+        color: PIE_CHART_COLORS.other,
+      },
+    ].filter((d) => d.value > 0);
+
     return {
       periodTotal,
       lastMonthTotal,
@@ -246,6 +245,7 @@ export function useDashboardAnalytics(
       bestDay,
       worstDay,
       needsWantsRatio,
+      pieData,
     };
   }, [filteredTransactions, allTransactions]);
 }

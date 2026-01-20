@@ -64,4 +64,5 @@ export interface DashboardAnalytics {
   bestDay: [string, number] | null;
   worstDay: [string, number] | null;
   needsWantsRatio: number;
+  pieData: { name: string; value: number; color: string }[];
 }

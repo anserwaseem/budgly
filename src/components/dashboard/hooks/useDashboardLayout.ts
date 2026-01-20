@@ -10,12 +10,9 @@ export function useDashboardLayout() {
 
   useEffect(() => {
     const handler = () => setLayout(getDashboardLayout());
-    window.addEventListener(DASHBOARD_LAYOUT_EVENT, handler as EventListener);
+    window.addEventListener(DASHBOARD_LAYOUT_EVENT, handler);
     return () => {
-      window.removeEventListener(
-        DASHBOARD_LAYOUT_EVENT,
-        handler as EventListener
-      );
+      window.removeEventListener(DASHBOARD_LAYOUT_EVENT, handler);
     };
   }, []);
 
