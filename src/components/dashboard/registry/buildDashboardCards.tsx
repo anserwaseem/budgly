@@ -424,9 +424,14 @@ export function buildDashboardCards(
 
         return (
           <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
-            <h3 className="text-xs sm:text-sm font-medium text-muted-foreground mb-3 sm:mb-4">
-              Last 7 Days
-            </h3>
+            <div className="flex items-center gap-1.5 mb-3 sm:mb-4">
+              <h3 className="text-xs sm:text-sm font-medium text-muted-foreground">
+                Last 7 Days
+              </h3>
+              <span className="text-[8px] sm:text-[10px] px-1.5 py-0.5 rounded bg-muted/50 text-muted-foreground/70 font-medium">
+                All Time
+              </span>
+            </div>
             <div className="h-32 sm:h-40">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={analytics.dailyData}>
@@ -767,9 +772,14 @@ export function buildDashboardCards(
 
         return (
           <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
-            <h3 className="text-xs sm:text-sm font-medium text-muted-foreground mb-3 sm:mb-4">
-              6 Month Overview
-            </h3>
+            <div className="flex items-center gap-1.5 mb-3 sm:mb-4">
+              <h3 className="text-xs sm:text-sm font-medium text-muted-foreground">
+                6 Month Overview
+              </h3>
+              <span className="text-[8px] sm:text-[10px] px-1.5 py-0.5 rounded bg-muted/50 text-muted-foreground/70 font-medium">
+                All Time
+              </span>
+            </div>
             <div className="h-36 sm:h-44">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={analytics.monthlyTrend}>
@@ -845,9 +855,14 @@ export function buildDashboardCards(
       fullWidth: true,
       render: () => (
         <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
-          <h3 className="text-xs sm:text-sm font-medium text-muted-foreground mb-2 sm:mb-3">
-            Last Month
-          </h3>
+          <div className="flex items-center gap-1.5 mb-2 sm:mb-3">
+            <h3 className="text-xs sm:text-sm font-medium text-muted-foreground">
+              Last Month
+            </h3>
+            <span className="text-[8px] sm:text-[10px] px-1.5 py-0.5 rounded bg-muted/50 text-muted-foreground/70 font-medium">
+              All Time
+            </span>
+          </div>
           <div className="flex items-center justify-between gap-2">
             <div className="min-w-0">
               <p className="text-sm sm:text-lg font-bold font-mono text-foreground truncate">

@@ -190,6 +190,7 @@ const DEFAULT_DASHBOARD_CARDS: DashboardCard[] = [
   { id: "top-categories", type: "chart", order: 13, visible: true },
   { id: "needs-wants", type: "chart", order: 14, visible: true },
   { id: "payment-mode", type: "chart", order: 15, visible: true },
+  // unfiltered cards
   { id: "daily-chart", type: "chart", order: 16, visible: true },
   { id: "monthly-trend", type: "chart", order: 17, visible: true },
   { id: "last-month", type: "stat", order: 18, visible: true },
