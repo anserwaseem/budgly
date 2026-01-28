@@ -8,6 +8,7 @@ interface InsightCardProps {
   subtitle: string;
   iconClassName?: string;
   valueClassName?: string;
+  onLabelClick?: () => void;
 }
 
 export function InsightCard({
@@ -17,12 +18,19 @@ export function InsightCard({
   subtitle,
   iconClassName,
   valueClassName = "text-foreground",
+  onLabelClick,
 }: InsightCardProps) {
   return (
     <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
       <div className="flex items-center gap-1.5 text-muted-foreground mb-1.5">
         <Icon className={cn("w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0", iconClassName)} />
-        <span className="text-[10px] sm:text-xs uppercase tracking-wider">
+        <span
+          onClick={onLabelClick}
+          className={cn(
+            "text-[10px] sm:text-xs uppercase tracking-wider",
+            onLabelClick && "cursor-pointer hover:text-foreground transition-colors"
+          )}
+        >
           {label}
         </span>
       </div>

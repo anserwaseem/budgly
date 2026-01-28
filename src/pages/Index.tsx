@@ -15,6 +15,10 @@ import { Dashboard } from "@/components/dashboard/Dashboard";
 import { FilterButton, FilterContent } from "@/components/FilterPanel";
 import { SettingsDialog } from "@/components/SettingsDialog";
 import { EditTransactionDialog } from "@/components/EditTransactionDialog";
+import {
+  FilteredTransactionsDialog,
+  type AdditionalFilterCriteria,
+} from "@/components/FilteredTransactionsDialog";
 import { PaymentMode, Transaction } from "@/lib/types";
 import { BarChart3, List } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -59,6 +63,10 @@ const IndexContent = () => {
   const [editingTransaction, setEditingTransaction] = useState<
     (typeof transactions)[0] | null
   >(null);
+  const [filteredDialogOpen, setFilteredDialogOpen] = useState(false);
+  const [additionalFilter, setAdditionalFilter] =
+    useState<AdditionalFilterCriteria | null>(null);
+  const [dialogTitle, setDialogTitle] = useState<string>("");
 
   // Get filtered transactions based on active filters
   const filteredTransactions = useMemo(() => {
@@ -132,6 +140,16 @@ const IndexContent = () => {
       });
     }
   }, [lastTransaction, addTransaction]);
+
+  // Handle opening filtered transactions dialog from dashboard
+  const handleOpenFilteredTransactions = useCallback(
+    (additionalFilter: AdditionalFilterCriteria, title: string) => {
+      setAdditionalFilter(additionalFilter);
+      setDialogTitle(title);
+      setFilteredDialogOpen(true);
+    },
+    []
+  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -228,10 +246,13 @@ const IndexContent = () => {
         <Activity mode={activeTab === "dashboard" ? "visible" : "hidden"}>
           <Dashboard
             transactions={filteredTransactions}
+            allTransactions={transactions}
             currencySymbol={settings.currencySymbol}
             settings={settings}
             streakData={streakData}
             timePeriod={timePeriod}
+            paymentModes={paymentModes}
+            onOpenFilteredTransactions={handleOpenFilteredTransactions}
           />
         </Activity>
       </div>
@@ -262,6 +283,34 @@ const IndexContent = () => {
           currencySymbol={settings.currencySymbol}
           onSave={updateTransaction}
           onClose={() => setEditingTransaction(null)}
+        />
+      )}
+
+      {filteredDialogOpen && additionalFilter && (
+        <FilteredTransactionsDialog
+          transactions={filteredTransactions}
+          additionalFilter={additionalFilter}
+          dialogTitle={dialogTitle}
+          currencySymbol={settings.currencySymbol}
+          settings={settings}
+          onEdit={setEditingTransaction}
+          onDelete={deleteTransaction}
+          onUpdateNecessity={updateNecessity}
+          onDuplicate={(t) => {
+            return addTransaction({
+              date: new Date().toISOString(),
+              reason: t.reason,
+              amount: t.amount,
+              paymentMode: t.paymentMode,
+              type: t.type,
+              necessity: t.necessity,
+            });
+          }}
+          onClose={() => {
+            setFilteredDialogOpen(false);
+            setAdditionalFilter(null);
+            setDialogTitle("");
+          }}
         />
       )}
     </div>

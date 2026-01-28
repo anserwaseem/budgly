@@ -25,11 +25,11 @@ import {
   Target,
   Wallet,
 } from "lucide-react";
-import { format } from "date-fns";
+import { format, startOfDay, endOfDay } from "date-fns";
 import { cn } from "@/lib/utils";
 import { formatAmount } from "@/lib/parser";
 import { formatMaskedAmount } from "@/lib/privacy";
-import type { AppSettings, StreakData } from "@/lib/types";
+import type { AppSettings, PaymentMode, StreakData } from "@/lib/types";
 import type {
   DashboardCardId,
   DashboardCardSpec,
@@ -38,6 +38,8 @@ import type {
 import { StatCard } from "../cards/StatCard";
 import { InsightCard } from "../cards/InsightCard";
 import { MODE_COLORS, CATEGORY_COLORS } from "../constants";
+import type { AdditionalFilterCriteria } from "@/components/FilteredTransactionsDialog";
+import { getWeekStart, getWeekEnd } from "../hooks/analytics/helpers";
 
 interface BuildCtx {
   analytics: DashboardAnalytics;
@@ -47,6 +49,11 @@ interface BuildCtx {
   periodText: string;
   formatAmountWithPrivacy: (amount: number) => string;
   maskReason: (reason: string) => string;
+  onOpenFilteredTransactions: (
+    additionalFilter: AdditionalFilterCriteria,
+    title: string
+  ) => void;
+  paymentModes: PaymentMode[];
 }
 
 export function buildDashboardCards(
@@ -60,7 +67,15 @@ export function buildDashboardCards(
     periodText,
     formatAmountWithPrivacy,
     maskReason,
+    onOpenFilteredTransactions,
+    paymentModes,
   } = ctx;
+
+  // Create a map from payment mode name to shorthand for quick lookup
+  const paymentModeMap = new Map<string, string>();
+  paymentModes.forEach((mode) => {
+    paymentModeMap.set(mode.name, mode.shorthand);
+  });
 
   const cards: Record<DashboardCardId, DashboardCardSpec> = {
     spent: {
@@ -77,6 +92,9 @@ export function buildDashboardCards(
             label: "vs last month",
             isPositive: analytics.percentChange <= 0,
           }}
+          onLabelClick={() =>
+            onOpenFilteredTransactions({ type: "expense" }, "Spent - Expenses")
+          }
         />
       ),
     },
@@ -90,6 +108,12 @@ export function buildDashboardCards(
           value={formatAmountWithPrivacy(analytics.periodIncomeTotal)}
           valueClassName="text-income"
           subtitle="Filtered results"
+          onLabelClick={() =>
+            onOpenFilteredTransactions(
+              { type: "income" },
+              "Income - Transactions"
+            )
+          }
         />
       ),
     },
@@ -111,18 +135,28 @@ export function buildDashboardCards(
     "this-week": {
       id: "this-week",
       type: "stat",
-      render: () => (
-        <StatCard
-          icon={Calendar}
-          label="This Week"
-          value={formatAmountWithPrivacy(analytics.thisWeekTotal)}
-          trend={{
-            value: analytics.weekChange,
-            label: "vs last week",
-            isPositive: analytics.weekChange <= 0,
-          }}
-        />
-      ),
+      render: () => {
+        const weekStart = getWeekStart(0);
+        const weekEnd = getWeekEnd(weekStart);
+        return (
+          <StatCard
+            icon={Calendar}
+            label="This Week"
+            value={formatAmountWithPrivacy(analytics.thisWeekTotal)}
+            trend={{
+              value: analytics.weekChange,
+              label: "vs last week",
+              isPositive: analytics.weekChange <= 0,
+            }}
+            onLabelClick={() =>
+              onOpenFilteredTransactions(
+                { dateRange: { start: weekStart, end: weekEnd } },
+                "This Week - Transactions"
+              )
+            }
+          />
+        );
+      },
     },
     "daily-avg": {
       id: "daily-avg",
@@ -133,6 +167,12 @@ export function buildDashboardCards(
           label="Daily Avg"
           value={formatAmountWithPrivacy(analytics.avgDailySpending)}
           subtitle={`Per day ${periodText}`}
+          onLabelClick={() =>
+            onOpenFilteredTransactions(
+              { type: "expense" },
+              "Daily Avg - Expenses"
+            )
+          }
         />
       ),
     },
@@ -145,6 +185,12 @@ export function buildDashboardCards(
           label="Avg/Txn"
           value={formatAmountWithPrivacy(analytics.avgTransactionSize)}
           subtitle="Per transaction"
+          onLabelClick={() =>
+            onOpenFilteredTransactions(
+              { type: "expense" },
+              "Avg/Txn - Expenses"
+            )
+          }
         />
       ),
     },
@@ -176,6 +222,12 @@ export function buildDashboardCards(
             label="Spending Streak"
             value={`${days} ${days === 1 ? "day" : "days"}`}
             subtitle="Consecutive spending"
+            onLabelClick={() =>
+              onOpenFilteredTransactions(
+                { type: "expense" },
+                "Spending Streak - Expenses"
+              )
+            }
           />
         );
       },
@@ -189,6 +241,12 @@ export function buildDashboardCards(
           label="Active Days"
           value={String(analytics.uniqueSpendingDays)}
           subtitle="Days with expenses"
+          onLabelClick={() =>
+            onOpenFilteredTransactions(
+              { type: "expense" },
+              "Active Days - Expenses"
+            )
+          }
         />
       ),
     },
@@ -200,7 +258,17 @@ export function buildDashboardCards(
           <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
             <div className="flex items-center gap-1.5 text-muted-foreground mb-1.5">
               <Repeat className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
-              <span className="text-[10px] sm:text-xs uppercase tracking-wider">
+              <span
+                onClick={() =>
+                  onOpenFilteredTransactions(
+                    { searchQuery: analytics.mostFrequentCategory[0] },
+                    `Most Frequent - ${maskReason(analytics.mostFrequentCategory[0])}`
+                  )
+                }
+                className={cn(
+                  "text-[10px] sm:text-xs uppercase tracking-wider cursor-pointer hover:text-foreground transition-colors"
+                )}
+              >
                 Most Frequent
               </span>
             </div>
@@ -222,7 +290,17 @@ export function buildDashboardCards(
           <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
             <div className="flex items-center gap-1.5 text-muted-foreground mb-2">
               <Award className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
-              <span className="text-[10px] sm:text-xs uppercase tracking-wider">
+              <span
+                onClick={() =>
+                  onOpenFilteredTransactions(
+                    { searchQuery: analytics.biggestExpense?.reason || "" },
+                    `Biggest Expense - ${maskReason(analytics.biggestExpense.reason || "Unknown")}`
+                  )
+                }
+                className={cn(
+                  "text-[10px] sm:text-xs uppercase tracking-wider cursor-pointer hover:text-foreground transition-colors"
+                )}
+              >
                 Biggest Expense
               </span>
             </div>
@@ -247,7 +325,18 @@ export function buildDashboardCards(
       render: () =>
         analytics.bestDay ? (
           <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
-            <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider mb-1">
+            <p
+              onClick={() => {
+                const dayDate = new Date(analytics.bestDay[0]);
+                const dayStart = startOfDay(dayDate);
+                const dayEnd = endOfDay(dayDate);
+                onOpenFilteredTransactions(
+                  { dateRange: { start: dayStart, end: dayEnd } },
+                  `Best Day - ${format(dayDate, "MMM d")} - Transactions`
+                );
+              }}
+              className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider mb-1 cursor-pointer hover:text-foreground transition-colors"
+            >
               Best Day
             </p>
             <p className="font-mono font-bold text-income text-sm sm:text-base truncate">
@@ -265,7 +354,18 @@ export function buildDashboardCards(
       render: () =>
         analytics.worstDay ? (
           <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
-            <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider mb-1">
+            <p
+              onClick={() => {
+                const dayDate = new Date(analytics.worstDay[0]);
+                const dayStart = startOfDay(dayDate);
+                const dayEnd = endOfDay(dayDate);
+                onOpenFilteredTransactions(
+                  { dateRange: { start: dayStart, end: dayEnd } },
+                  `Worst Day - ${format(dayDate, "MMM d")} - Transactions`
+                );
+              }}
+              className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider mb-1 cursor-pointer hover:text-foreground transition-colors"
+            >
               Worst Day
             </p>
             <p className="font-mono font-bold text-expense text-sm sm:text-base truncate">
@@ -280,66 +380,116 @@ export function buildDashboardCards(
     "daily-chart": {
       id: "daily-chart",
       type: "chart",
-      render: () => (
-        <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
-          <h3 className="text-xs sm:text-sm font-medium text-muted-foreground mb-3 sm:mb-4">
-            Last 7 Days
-          </h3>
-          <div className="h-32 sm:h-40">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={analytics.dailyData}>
-                <XAxis
-                  dataKey="day"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }}
-                />
-                <YAxis hide />
-                <Tooltip
-                  contentStyle={{
-                    background: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "8px",
-                    fontSize: "11px",
-                  }}
-                  formatter={(value: number, name: string) => [
-                    settings.privacyMode?.hideAmounts
-                      ? formatMaskedAmount(value, settings, currencySymbol)
-                      : `${currencySymbol}${formatAmount(value)}`,
-                    name === "expense" ? "Spent" : "Earned",
-                  ]}
-                />
-                <Bar
-                  dataKey="expense"
-                  fill="hsl(var(--expense))"
-                  radius={[4, 4, 0, 0]}
-                  name="expense"
-                />
-                <Bar
-                  dataKey="income"
-                  fill="hsl(var(--income))"
-                  radius={[4, 4, 0, 0]}
-                  name="income"
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="flex justify-center gap-3 sm:gap-4 mt-2">
-            <div className="flex items-center gap-1">
-              <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-expense" />
-              <span className="text-[10px] sm:text-xs text-muted-foreground">
-                Expense
-              </span>
+      render: () => {
+        // Create custom tick component for clickable day labels
+        const CustomTick = (props: {
+          x?: number;
+          y?: number;
+          payload?: { value: string };
+        }) => {
+          const { x, y, payload } = props;
+          if (x == null || y == null || !payload) return null;
+
+          // Find the date for this day label using stored date from analytics
+          const dayData = analytics.dailyData.find(
+            (d) => d.day === payload.value
+          );
+          if (!dayData) return null;
+
+          const dayStart = startOfDay(dayData.date);
+          const dayEnd = endOfDay(dayData.date);
+
+          return (
+            <g transform={`translate(${x},${y})`}>
+              <text
+                x={0}
+                y={0}
+                dy={16}
+                textAnchor="middle"
+                fill="hsl(var(--muted-foreground))"
+                fontSize={10}
+                className="cursor-pointer hover:fill-foreground transition-colors"
+                onClick={() =>
+                  onOpenFilteredTransactions(
+                    { dateRange: { start: dayStart, end: dayEnd } },
+                    `Last 7 Days - ${payload.value} - Transactions`
+                  )
+                }
+              >
+                {payload.value}
+              </text>
+            </g>
+          );
+        };
+
+        return (
+          <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
+            <h3 className="text-xs sm:text-sm font-medium text-muted-foreground mb-3 sm:mb-4">
+              Last 7 Days
+            </h3>
+            <div className="h-32 sm:h-40">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={analytics.dailyData}>
+                  <XAxis
+                    dataKey="day"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={CustomTick}
+                  />
+                  <YAxis hide />
+                  <Tooltip
+                    contentStyle={{
+                      background: "hsl(var(--card))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "8px",
+                      fontSize: "11px",
+                      color: "hsl(var(--foreground))",
+                    }}
+                    labelStyle={{
+                      color: "hsl(var(--foreground))",
+                    }}
+                    itemStyle={{
+                      color: "hsl(var(--foreground))",
+                    }}
+                    formatter={(value: number, name: string) => [
+                      settings.privacyMode?.hideAmounts
+                        ? formatMaskedAmount(value, settings, currencySymbol)
+                        : `${currencySymbol}${formatAmount(value)}`,
+                      name === "expense" ? "Spent" : "Earned",
+                    ]}
+                  />
+                  <Bar
+                    dataKey="expense"
+                    fill="hsl(var(--expense))"
+                    radius={[4, 4, 0, 0]}
+                    name="expense"
+                  />
+                  <Bar
+                    dataKey="income"
+                    fill="hsl(var(--income))"
+                    radius={[4, 4, 0, 0]}
+                    name="income"
+                  />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
-            <div className="flex items-center gap-1">
-              <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-income" />
-              <span className="text-[10px] sm:text-xs text-muted-foreground">
-                Income
-              </span>
+            <div className="flex justify-center gap-3 sm:gap-4 mt-2">
+              <div className="flex items-center gap-1">
+                <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-expense" />
+                <span className="text-[10px] sm:text-xs text-muted-foreground">
+                  Expense
+                </span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-income" />
+                <span className="text-[10px] sm:text-xs text-muted-foreground">
+                  Income
+                </span>
+              </div>
             </div>
           </div>
-        </div>
-      ),
+        );
+      },
     },
     "top-categories": {
       id: "top-categories",
@@ -357,7 +507,15 @@ export function buildDashboardCards(
                 return (
                   <div key={cat.name}>
                     <div className="flex items-center justify-between mb-1 gap-2">
-                      <span className="text-xs sm:text-sm font-medium capitalize truncate flex-1">
+                      <span
+                        onClick={() =>
+                          onOpenFilteredTransactions(
+                            { searchQuery: cat.name },
+                            `Top Spending - ${maskReason(cat.name)}`
+                          )
+                        }
+                        className="text-xs sm:text-sm font-medium capitalize truncate flex-1 cursor-pointer hover:text-foreground transition-colors"
+                      >
                         {maskReason(cat.name)}
                       </span>
                       <span className="font-mono text-xs sm:text-sm text-muted-foreground flex-shrink-0">
@@ -411,25 +569,44 @@ export function buildDashboardCards(
                 </ResponsiveContainer>
               </div>
               <div className="flex-1 space-y-1.5 sm:space-y-2 min-w-0">
-                {analytics.pieData.map((item) => (
-                  <div
-                    key={item.name}
-                    className="flex items-center justify-between gap-2"
-                  >
-                    <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-                      <span
-                        className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full flex-shrink-0"
-                        style={{ backgroundColor: item.color }}
-                      />
-                      <span className="text-xs sm:text-sm truncate">
-                        {maskReason(item.name)}
+                {analytics.pieData.map((item) => {
+                  const necessityMap: Record<
+                    string,
+                    "need" | "want" | "uncategorized"
+                  > = {
+                    Needs: "need",
+                    Wants: "want",
+                    Other: "uncategorized",
+                  };
+                  const necessity = necessityMap[item.name] || "uncategorized";
+                  return (
+                    <div
+                      key={item.name}
+                      className="flex items-center justify-between gap-2"
+                    >
+                      <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                        <span
+                          className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: item.color }}
+                        />
+                        <span
+                          onClick={() =>
+                            onOpenFilteredTransactions(
+                              { necessity },
+                              `Needs vs Wants - ${maskReason(item.name)}`
+                            )
+                          }
+                          className="text-xs sm:text-sm truncate cursor-pointer hover:text-foreground transition-colors"
+                        >
+                          {maskReason(item.name)}
+                        </span>
+                      </div>
+                      <span className="font-mono text-xs sm:text-sm flex-shrink-0">
+                        {formatAmountWithPrivacy(item.value)}
                       </span>
                     </div>
-                    <span className="font-mono text-xs sm:text-sm flex-shrink-0">
-                      {formatAmountWithPrivacy(item.value)}
-                    </span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -438,8 +615,56 @@ export function buildDashboardCards(
     "payment-mode": {
       id: "payment-mode",
       type: "chart",
-      render: () =>
-        analytics.byMode.length > 0 ? (
+      render: () => {
+        // Create custom tick component for clickable payment mode labels using symbols
+        const CustomTick = (props: {
+          x?: number;
+          y?: number;
+          payload?: { value: string };
+        }) => {
+          const { x, y, payload } = props;
+          // Fix Bug 1: Use == null to correctly handle 0 values
+          if (x == null || y == null || !payload) return null;
+
+          // Get shorthand symbol for the payment mode, fallback to name if not found
+          const symbol = paymentModeMap.get(payload.value) || payload.value;
+
+          // Use fixed x position (0) for left alignment, so all labels start at the same point
+          // Add larger tap target area with transparent rectangle for better mobile UX
+          const handleClick = () =>
+            onOpenFilteredTransactions(
+              { searchQuery: payload.value },
+              `By Payment Mode - ${payload.value}`
+            );
+
+          return (
+            <g transform={`translate(0,${y})`}>
+              {/* Invisible larger tap target area - 40px wide, 24px tall */}
+              <rect
+                x={0}
+                y={-12}
+                width={40}
+                height={24}
+                fill="transparent"
+                className="cursor-pointer"
+                onClick={handleClick}
+              />
+              <text
+                x={4}
+                y={0}
+                textAnchor="start"
+                fill="hsl(var(--muted-foreground))"
+                fontSize={12}
+                fontWeight={500}
+                className="pointer-events-none"
+              >
+                {symbol}
+              </text>
+            </g>
+          );
+        };
+
+        return analytics.byMode.length > 0 ? (
           <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
             <h3 className="text-xs sm:text-sm font-medium text-muted-foreground mb-3 sm:mb-4">
               By Payment Mode
@@ -453,11 +678,8 @@ export function buildDashboardCards(
                     dataKey="name"
                     axisLine={false}
                     tickLine={false}
-                    tick={{
-                      fill: "hsl(var(--muted-foreground))",
-                      fontSize: 10,
-                    }}
-                    width={60}
+                    tick={CustomTick}
+                    width={40}
                   />
                   <Tooltip
                     contentStyle={{
@@ -465,6 +687,14 @@ export function buildDashboardCards(
                       border: "1px solid hsl(var(--border))",
                       borderRadius: "8px",
                       fontSize: "11px",
+                      color: "hsl(var(--foreground))",
+                    }}
+                    labelStyle={{
+                      color: "hsl(var(--foreground))",
+                      fontWeight: 600,
+                    }}
+                    itemStyle={{
+                      color: "hsl(var(--foreground))",
                     }}
                     formatter={(value: number) => [
                       settings.privacyMode?.hideAmounts
@@ -485,76 +715,129 @@ export function buildDashboardCards(
               </ResponsiveContainer>
             </div>
           </div>
-        ) : null,
+        ) : null;
+      },
     },
     "monthly-trend": {
       id: "monthly-trend",
       type: "chart",
-      render: () => (
-        <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
-          <h3 className="text-xs sm:text-sm font-medium text-muted-foreground mb-3 sm:mb-4">
-            6 Month Overview
-          </h3>
-          <div className="h-36 sm:h-44">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={analytics.monthlyTrend}>
-                <XAxis
-                  dataKey="month"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }}
-                />
-                <YAxis hide />
-                <Tooltip
-                  contentStyle={{
-                    background: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "8px",
-                    fontSize: "11px",
-                  }}
-                  formatter={(value: number, name: string) => {
-                    const labels: Record<string, string> = {
-                      income: "Income",
-                      expense: "Expense",
-                      savings: "Savings",
-                    };
-                    return [
-                      settings.privacyMode?.hideAmounts
-                        ? formatMaskedAmount(value, settings, currencySymbol)
-                        : `${currencySymbol}${formatAmount(value)}`,
-                      labels[name] || name,
-                    ];
-                  }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="income"
-                  stroke="hsl(var(--income))"
-                  fill="hsl(var(--income))"
-                  fillOpacity={0.15}
-                  strokeWidth={2}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="expense"
-                  stroke="hsl(var(--expense))"
-                  fill="hsl(var(--expense))"
-                  fillOpacity={0.15}
-                  strokeWidth={2}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="savings"
-                  stroke="hsl(var(--primary))"
-                  strokeWidth={2}
-                  strokeDasharray="4 4"
-                  dot={{ fill: "hsl(var(--primary))", strokeWidth: 0, r: 3 }}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+      render: () => {
+        // Create custom tick component for clickable month labels
+        const CustomTick = (props: {
+          x?: number;
+          y?: number;
+          payload?: { value: string };
+        }) => {
+          const { x, y, payload } = props;
+          // Fix Bug 1: Use == null to correctly handle 0 values
+          if (x == null || y == null || !payload) return null;
+
+          // Find the month data to get the date range
+          const monthData = analytics.monthlyTrend.find(
+            (m) => m.month === payload.value
+          );
+          if (!monthData) return null;
+
+          // Fix Bug 2: Use the stored date range from analytics instead of recalculating
+          const monthStart = startOfDay(monthData.monthStart);
+          const monthEnd = endOfDay(monthData.monthEnd);
+
+          return (
+            <g transform={`translate(${x},${y})`}>
+              <text
+                x={0}
+                y={0}
+                dy={16}
+                textAnchor="middle"
+                fill="hsl(var(--muted-foreground))"
+                fontSize={10}
+                className="cursor-pointer hover:fill-foreground transition-colors"
+                onClick={() =>
+                  onOpenFilteredTransactions(
+                    { dateRange: { start: monthStart, end: monthEnd } },
+                    `6 Month Overview - ${payload.value} - Transactions`
+                  )
+                }
+              >
+                {payload.value}
+              </text>
+            </g>
+          );
+        };
+
+        return (
+          <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
+            <h3 className="text-xs sm:text-sm font-medium text-muted-foreground mb-3 sm:mb-4">
+              6 Month Overview
+            </h3>
+            <div className="h-36 sm:h-44">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={analytics.monthlyTrend}>
+                  <XAxis
+                    dataKey="month"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={CustomTick}
+                  />
+                  <YAxis hide />
+                  <Tooltip
+                    contentStyle={{
+                      background: "hsl(var(--card))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "8px",
+                      fontSize: "11px",
+                      color: "hsl(var(--foreground))",
+                    }}
+                    labelStyle={{
+                      color: "hsl(var(--foreground))",
+                    }}
+                    itemStyle={{
+                      color: "hsl(var(--foreground))",
+                    }}
+                    formatter={(value: number, name: string) => {
+                      const labels: Record<string, string> = {
+                        income: "Income",
+                        expense: "Expense",
+                        savings: "Savings",
+                      };
+                      return [
+                        settings.privacyMode?.hideAmounts
+                          ? formatMaskedAmount(value, settings, currencySymbol)
+                          : `${currencySymbol}${formatAmount(value)}`,
+                        labels[name] || name,
+                      ];
+                    }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="income"
+                    stroke="hsl(var(--income))"
+                    fill="hsl(var(--income))"
+                    fillOpacity={0.15}
+                    strokeWidth={2}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="expense"
+                    stroke="hsl(var(--expense))"
+                    fill="hsl(var(--expense))"
+                    fillOpacity={0.15}
+                    strokeWidth={2}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="savings"
+                    stroke="hsl(var(--primary))"
+                    strokeWidth={2}
+                    strokeDasharray="4 4"
+                    dot={{ fill: "hsl(var(--primary))", strokeWidth: 0, r: 3 }}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
           </div>
-        </div>
-      ),
+        );
+      },
     },
     "last-month": {
       id: "last-month",

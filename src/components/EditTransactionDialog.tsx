@@ -68,7 +68,7 @@ export function EditTransactionDialog({
     format(selectedDate, "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd");
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-fade-in">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-fade-in">
       <div className="w-full max-w-md bg-card border border-border rounded-2xl shadow-xl animate-scale-in">
         <div className="flex items-center justify-between p-4 border-b border-border">
           <h2 className="text-lg font-semibold">Edit Transaction</h2>
@@ -123,7 +123,7 @@ export function EditTransactionDialog({
                     : format(selectedDate, "EEEE, MMM d, yyyy")}
                 </button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
+              <PopoverContent className="w-auto p-0 z-[70]" align="start">
                 <Calendar
                   mode="single"
                   selected={selectedDate}

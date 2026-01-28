@@ -13,6 +13,7 @@ interface StatCardProps {
     label: string;
     isPositive: boolean;
   };
+  onLabelClick?: () => void;
 }
 
 export function StatCard({
@@ -22,12 +23,19 @@ export function StatCard({
   valueClassName,
   subtitle,
   trend,
+  onLabelClick,
 }: StatCardProps) {
   return (
     <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
       <div className="flex items-center gap-1.5 text-muted-foreground mb-1.5">
         <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
-        <span className="text-[10px] sm:text-xs uppercase tracking-wider">
+        <span
+          onClick={onLabelClick}
+          className={cn(
+            "text-[10px] sm:text-xs uppercase tracking-wider",
+            onLabelClick && "cursor-pointer hover:text-foreground transition-colors"
+          )}
+        >
           {label}
         </span>
       </div>

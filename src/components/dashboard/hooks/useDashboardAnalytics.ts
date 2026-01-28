@@ -50,18 +50,18 @@ export function useDashboardAnalytics(
       .slice(0, 5)
       .map(([name, value]) => ({ name, value }));
 
-    const dailyData: { day: string; expense: number; income: number }[] = [];
+    const dailyData: DashboardAnalytics["dailyData"] = [];
     for (let i = 6; i >= 0; i--) {
       const date = new Date();
       date.setDate(date.getDate() - i);
       const dateStr = date.toDateString();
-      const dayExpense = filteredTransactions
+      const dayExpense = allTransactions
         .filter(
           (t) =>
             new Date(t.date).toDateString() === dateStr && t.type === "expense"
         )
         .reduce((sum, t) => sum + t.amount, 0);
-      const dayIncome = filteredTransactions
+      const dayIncome = allTransactions
         .filter(
           (t) =>
             new Date(t.date).toDateString() === dateStr && t.type === "income"
@@ -71,15 +71,11 @@ export function useDashboardAnalytics(
         day: date.toLocaleDateString("en", { weekday: "short" }),
         expense: dayExpense,
         income: dayIncome,
+        date: new Date(date),
       });
     }
 
-    const monthlyTrend: {
-      month: string;
-      expense: number;
-      income: number;
-      savings: number;
-    }[] = [];
+    const monthlyTrend: DashboardAnalytics["monthlyTrend"] = [];
     for (let i = 5; i >= 0; i--) {
       const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
@@ -100,6 +96,8 @@ export function useDashboardAnalytics(
         expense: monthExpense,
         income: monthIncome,
         savings: monthIncome - monthExpense,
+        monthStart: new Date(monthStart),
+        monthEnd: new Date(monthEnd),
       });
     }
 
@@ -150,12 +148,22 @@ export function useDashboardAnalytics(
     const frequencyByReason = periodExpenses.reduce(
       (acc, t) => {
         const reason = t.reason || "Other";
-        acc[reason] = (acc[reason] || 0) + 1;
+        const normalizedReason = reason.toLowerCase();
+        // Preserve original casing from first occurrence
+        if (!acc[normalizedReason]) {
+          acc[normalizedReason] = { count: 0, original: reason };
+        }
+        acc[normalizedReason].count += 1;
         return acc;
       },
-      {} as Record<string, number>
+      {} as Record<string, { count: number; original: string }>
     );
-    const mostFrequentCategory = Object.entries(frequencyByReason).sort(
+    // Convert back to original casing
+    const frequencyByReasonOriginal: Record<string, number> = {};
+    Object.values(frequencyByReason).forEach((data) => {
+      frequencyByReasonOriginal[data.original] = data.count;
+    });
+    const mostFrequentCategory = Object.entries(frequencyByReasonOriginal).sort(
       ([, a], [, b]) => b - a
     )[0];
 

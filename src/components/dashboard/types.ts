@@ -49,12 +49,19 @@ export interface DashboardAnalytics {
   transactionCount: number;
   topCategories: { name: string; value: number }[];
   byMode: { name: string; value: number }[];
-  dailyData: { day: string; expense: number; income: number }[];
+  dailyData: {
+    day: string;
+    expense: number;
+    income: number;
+    date: Date;
+  }[];
   monthlyTrend: {
     month: string;
     expense: number;
     income: number;
     savings: number;
+    monthStart: Date;
+    monthEnd: Date;
   }[];
   biggestExpense: Transaction | null;
   mostFrequentCategory?: [string, number];

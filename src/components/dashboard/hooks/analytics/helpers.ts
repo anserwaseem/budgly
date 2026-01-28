@@ -27,16 +27,40 @@ export function calculateByNecessity(
   return calculateTotal(transactions.filter((t) => t.necessity === necessity));
 }
 
+/**
+ * Case-insensitive aggregation that preserves original casing for display.
+ * Groups items with different casing (e.g., "grocery" and "Grocery") together.
+ * @param transactions - The transactions to aggregate.
+ * @param getKey - The function to get the key from the transaction.
+ * @returns A record of the aggregated values with original casing.
+ */
 export function aggregateByKey(
   transactions: Transaction[],
   getKey: (t: Transaction) => string
 ): Record<string, number> {
   const result: Record<string, number> = {};
+  const casingMap: Record<string, string> = {}; // Maps lowercase key to original casing
+
   transactions.forEach((t) => {
-    const key = getKey(t);
-    result[key] = (result[key] || 0) + t.amount;
+    const originalKey = getKey(t);
+    const normalizedKey = originalKey.toLowerCase();
+
+    // Preserve the first occurrence's casing for display
+    if (!casingMap[normalizedKey]) {
+      casingMap[normalizedKey] = originalKey;
+    }
+
+    // Aggregate using normalized (lowercase) key
+    result[normalizedKey] = (result[normalizedKey] || 0) + t.amount;
   });
-  return result;
+
+  // Convert back to original casing for display
+  const resultWithOriginalCasing: Record<string, number> = {};
+  Object.entries(result).forEach(([normalizedKey, value]) => {
+    resultWithOriginalCasing[casingMap[normalizedKey]] = value;
+  });
+
+  return resultWithOriginalCasing;
 }
 
 export function filterByDateRange(

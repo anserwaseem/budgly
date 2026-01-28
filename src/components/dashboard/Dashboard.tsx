@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from "react";
-import type { AppSettings, StreakData, Transaction } from "@/lib/types";
+import type { AppSettings, PaymentMode, StreakData, Transaction } from "@/lib/types";
 import type { TimePeriod } from "@/hooks/useFilters";
 import { saveDashboardLayout } from "@/lib/storage";
 import { getPeriodText } from "@/lib/utils";
@@ -10,27 +10,37 @@ import { useFormatAmount } from "./hooks/useFormatAmount";
 import { DashboardSortableGrid } from "./dnd/DashboardSortableGrid";
 import type { DashboardCardId, DashboardCardSpec } from "./types";
 import { buildDashboardCards } from "./registry/buildDashboardCards";
+import type { AdditionalFilterCriteria } from "@/components/FilteredTransactionsDialog";
 
 interface DashboardProps {
-  transactions: Transaction[];
+  transactions: Transaction[]; // Filtered transactions
+  allTransactions: Transaction[]; // All transactions (unfiltered)
   currencySymbol: string;
   settings: AppSettings;
   streakData?: StreakData;
   timePeriod: TimePeriod;
+  paymentModes: PaymentMode[];
+  onOpenFilteredTransactions: (
+    additionalFilter: AdditionalFilterCriteria,
+    title: string
+  ) => void;
 }
 
 export function Dashboard({
   transactions,
+  allTransactions,
   currencySymbol,
   settings,
   streakData,
   timePeriod,
+  paymentModes,
+  onOpenFilteredTransactions,
 }: DashboardProps) {
   /** Parent already filtered; keep API stable. */
   const filteredTransactions = transactions;
 
   const periodText = getPeriodText(timePeriod);
-  const analytics = useDashboardAnalytics(filteredTransactions, transactions);
+  const analytics = useDashboardAnalytics(filteredTransactions, allTransactions);
   const formatAmountWithPrivacy = useFormatAmount(settings, currencySymbol);
 
   const { layout, setLayout, orderedIds } = useDashboardLayout();
@@ -44,6 +54,8 @@ export function Dashboard({
       periodText,
       formatAmountWithPrivacy,
       maskReason: (reason) => maskReason(reason, settings),
+      onOpenFilteredTransactions,
+      paymentModes,
     });
   }, [
     analytics,
@@ -52,6 +64,8 @@ export function Dashboard({
     streakData,
     periodText,
     formatAmountWithPrivacy,
+    onOpenFilteredTransactions,
+    paymentModes,
   ]);
 
   const renderCard = (id: DashboardCardId) => cards[id]?.render() ?? null;
